@@ -8,21 +8,21 @@ export const SPEED_TAU = 30;
 
 // ── Traffic Spawning ────────────────────────────────────────────────
 /** Distance ahead of the player where new traffic spawns (meters). */
-export const TRAFFIC_SPAWN_DISTANCE = 300;
+export const TRAFFIC_SPAWN_DISTANCE = 150;
 /** Distance behind the player where traffic is despawned (meters). */
 export const TRAFFIC_DESPAWN_DISTANCE = 50;
 /** Minimum gap in meters between two cars in the same lane. */
-export const TRAFFIC_SAME_LANE_GAP = 40;
+export const TRAFFIC_SAME_LANE_GAP = 30;
 
 /**
  * Base spawn interval in seconds at minimum speed.
  * Decreases as player speed increases (more traffic at high speed).
  */
-export const TRAFFIC_BASE_SPAWN_INTERVAL = 0.8;
+export const TRAFFIC_BASE_SPAWN_INTERVAL = 0.45;
 /**
  * Minimum spawn interval in seconds (cap so density doesn't get absurd).
  */
-export const TRAFFIC_MIN_SPAWN_INTERVAL = 0.25;
+export const TRAFFIC_MIN_SPAWN_INTERVAL = 0.18;
 
 /** Probability that a spawned car is a semi (slow, large). */
 export const HAZARD_SEMI_CHANCE = 0.1;
