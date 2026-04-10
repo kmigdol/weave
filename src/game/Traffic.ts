@@ -39,7 +39,9 @@ export interface TrafficCar {
 
 export class TrafficManager {
   readonly cars: TrafficCar[] = [];
-  private pool: Mesh[] = [];
+  private normalPool: Mesh[] = [];
+  private semiPool: Mesh[] = [];
+  private swervingPool: Mesh[] = [];
   private spawnTimer: number;
   private scene: Scene;
   private rng: () => number;
@@ -91,24 +93,17 @@ export class TrafficManager {
     }
   }
 
-  /** Remove all cars, return meshes to pool. Used on restart. */
+  /** Remove all cars, return meshes to pool, reset spawn timer. Used on restart. */
   reset(): void {
     for (let i = this.cars.length - 1; i >= 0; i--) {
       this.despawn(i);
     }
+    this.spawnTimer = TRAFFIC_BASE_SPAWN_INTERVAL;
   }
 
-  /** Get cars suitable for collision checking. */
-  get collidables(): Array<{
-    x: number;
-    z: number;
-    type: 'normal' | 'semi' | 'swerving';
-  }> {
-    return this.cars.map((car) => ({
-      x: car.x,
-      z: car.z,
-      type: car.type,
-    }));
+  /** Get cars suitable for collision checking (zero-alloc — TrafficCar satisfies CollidableCar). */
+  get collidables(): readonly TrafficCar[] {
+    return this.cars;
   }
 
   // ── Private helpers ───────────────────────────────────────────────
@@ -183,11 +178,17 @@ export class TrafficManager {
     return true;
   }
 
+  private poolFor(type: 'normal' | 'semi' | 'swerving'): Mesh[] {
+    if (type === 'semi') return this.semiPool;
+    if (type === 'swerving') return this.swervingPool;
+    return this.normalPool;
+  }
+
   private acquireMesh(type: 'normal' | 'semi' | 'swerving'): Mesh {
-    // Try to reuse from pool
-    if (this.pool.length > 0) {
-      const mesh = this.pool.pop()!;
-      return mesh;
+    // Try to reuse from the correct type-specific pool
+    const pool = this.poolFor(type);
+    if (pool.length > 0) {
+      return pool.pop()!;
     }
 
     // Create new mesh
@@ -214,7 +215,7 @@ export class TrafficManager {
   private despawn(index: number): void {
     const car = this.cars[index];
     car.mesh.visible = false;
-    this.pool.push(car.mesh);
+    this.poolFor(car.type).push(car.mesh);
     this.cars.splice(index, 1);
   }
 }

@@ -1,6 +1,6 @@
 import { BoxGeometry, Mesh, MeshStandardMaterial } from 'three';
 import { Renderer } from '../render/Renderer';
-import { Player, laneToX } from './Player';
+import { Player, laneToX, NUM_LANES } from './Player';
 import { Input } from './Input';
 import { World } from './World';
 import { FixedTimestepLoop } from '../lib/Loop';
@@ -56,7 +56,9 @@ export class Game {
     this.input.onRight(() => {
       if (this.state.phase === 'running') this.player.changeLane(+1);
     });
-    this.input.onRestart(() => this.restart());
+    this.input.onRestart(() => {
+      if (this.state.phase === 'gameOver') this.restart();
+    });
 
     this.state = startRun();
   }
@@ -76,7 +78,7 @@ export class Game {
 
   private restart(): void {
     // Reset player to center lane (including interpolated x position)
-    this.player.targetLane = Math.floor(5 / 2); // NUM_LANES / 2
+    this.player.targetLane = Math.floor(NUM_LANES / 2);
     this.player.x = laneToX(this.player.targetLane);
 
     // Clear all traffic

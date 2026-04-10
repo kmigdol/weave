@@ -105,7 +105,7 @@ export function computePlayerBox(playerX: number): AABB {
  */
 export function checkCollisions(
   playerX: number,
-  cars: CollidableCar[],
+  cars: readonly CollidableCar[],
 ): CollisionResult {
   const hits: CollidableCar[] = [];
   const nearMisses: CollidableCar[] = [];
