@@ -15,6 +15,8 @@ import {
   SWERVE_FREQUENCY,
   SPEED_MIN_MS,
   SPEED_MAX_MS,
+  MAX_LANES_AT_SPAWN_DEPTH,
+  WALL_CHECK_DEPTH,
 } from './constants';
 
 // ── Color Palettes ──────────────────────────────────────────────────
@@ -128,6 +130,17 @@ export class TrafficManager {
       if (car.lane === lane && Math.abs(car.z - spawnZ) < TRAFFIC_SAME_LANE_GAP) {
         return false; // too close, skip
       }
+    }
+
+    // Wall prevention: don't spawn if too many lanes already occupied near spawn z
+    const lanesOccupied = new Set<number>();
+    for (const car of this.cars) {
+      if (Math.abs(car.z - spawnZ) < WALL_CHECK_DEPTH) {
+        lanesOccupied.add(car.lane);
+      }
+    }
+    if (lanesOccupied.size >= MAX_LANES_AT_SPAWN_DEPTH && !lanesOccupied.has(lane)) {
+      return false; // would create a wall — skip
     }
 
     // Roll car type

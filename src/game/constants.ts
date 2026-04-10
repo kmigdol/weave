@@ -36,7 +36,11 @@ export const HAZARD_SWERVING_CHANCE = 0.05;
  */
 export const LANE_SPEED_MULTIPLIERS = [0.85, 0.78, 0.7, 0.62, 0.55];
 /** Random speed variation applied to each car (± this fraction of its base). */
-export const LANE_SPEED_VARIATION = 0.08;
+export const LANE_SPEED_VARIATION = 0.18;
+/** Maximum number of lanes that can have a car within WALL_CHECK_DEPTH meters of the spawn point. */
+export const MAX_LANES_AT_SPAWN_DEPTH = 3;
+/** How deep (meters) to look around the spawn z when checking for lane walls. */
+export const WALL_CHECK_DEPTH = 15;
 /** Semi trucks are this fraction of their normal lane speed. */
 export const SEMI_SPEED_FACTOR = 0.6;
 
