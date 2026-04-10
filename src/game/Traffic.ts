@@ -32,7 +32,8 @@ const SEMI_SIZE = { w: 2.4, h: 2.0, l: 8.0 };
 
 export interface TrafficCar {
   lane: number;
-  speed: number; // m/s
+  baseSpeed: number; // original assigned speed (m/s), never mutated
+  speed: number; // effective speed this tick (may be clamped by following)
   z: number; // world-space z (negative = ahead)
   type: 'normal' | 'semi' | 'swerving';
   mesh: Mesh;
@@ -58,12 +59,17 @@ export class TrafficManager {
 
   /** Call every simulation tick. */
   update(playerSpeed: number, dtSeconds: number): void {
-    // 1. Move all cars
+    // 1. Restore base speeds (following may have clamped them last tick)
+    for (const car of this.cars) {
+      car.speed = car.baseSpeed;
+    }
+
+    // 2. Move all cars
     for (const car of this.cars) {
       car.z += (playerSpeed - car.speed) * dtSeconds;
     }
 
-    // 2. Same-lane following: prevent cars from clipping through each other.
+    // 3. Same-lane following: clamp position and speed for this tick only
     this.enforceLaneFollowing();
 
     // 3. Wall-buster: scan z-bands ahead of player and speed up a car
@@ -159,36 +165,31 @@ export class TrafficManager {
 
   /**
    * Scan z-bands ahead of the player. If any band has more than
-   * MAX_LANES_IN_BAND lanes occupied, speed up the slowest car in
-   * that band so it clears out and opens a gap.
+   * MAX_LANES_IN_BAND lanes occupied, despawn a car to open a gap.
    */
-  private bustWalls(playerSpeed: number): void {
-    // Scan bands from just ahead of the player out to spawn distance
-    const scanStart = -5;   // just ahead of player
+  private bustWalls(_playerSpeed: number): void {
+    const scanStart = -5;
     const scanEnd = -TRAFFIC_SPAWN_DISTANCE;
 
     for (let bandZ = scanStart; bandZ > scanEnd; bandZ -= WALL_BAND_WIDTH) {
       const bandMin = bandZ - WALL_BAND_WIDTH;
       const bandMax = bandZ;
 
-      // Collect unique lanes occupied in this band
       const lanesInBand = new Set<number>();
-      let slowestCar: TrafficCar | null = null;
-      let slowestSpeed = Infinity;
+      const carsInBand: number[] = []; // indices into this.cars
 
-      for (const car of this.cars) {
+      for (let i = 0; i < this.cars.length; i++) {
+        const car = this.cars[i];
         if (car.z >= bandMin && car.z <= bandMax) {
           lanesInBand.add(car.lane);
-          if (car.speed < slowestSpeed) {
-            slowestSpeed = car.speed;
-            slowestCar = car;
-          }
+          carsInBand.push(i);
         }
       }
 
-      // If too many lanes blocked, accelerate the slowest car to break the wall
-      if (lanesInBand.size > MAX_LANES_IN_BAND && slowestCar) {
-        slowestCar.speed = playerSpeed * 0.95;
+      if (lanesInBand.size > MAX_LANES_IN_BAND && carsInBand.length > 0) {
+        // Despawn the last car added to break the wall
+        this.despawn(carsInBand[carsInBand.length - 1]);
+        return; // one despawn per tick is enough
       }
     }
   }
@@ -259,6 +260,7 @@ export class TrafficManager {
     const x = laneToX(lane);
     const car: TrafficCar = {
       lane,
+      baseSpeed: speed,
       speed,
       z: spawnZ,
       type,
