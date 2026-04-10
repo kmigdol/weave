@@ -11,8 +11,8 @@ Weave is Kayleigh's entry for the **2026 Vibe Coding Game Jam** (jam.pieter.com/
 ## Source of truth
 
 - **Design doc:** `docs/plans/2026-04-09-weave-design.md` — canonical spec, MVP scope, stretch list, architecture, schema. Read this before making scope decisions.
-- **Linear team:** `weave` (identifier `WEA`)
-- **Milestones:** WEA-1 through WEA-5 are the only tickets that should exist. Bug tickets can be created during playtesting. Do not create new feature tickets unless explicitly scoping new work.
+- **Linear team:** `weave` (identifier `WEA`) — **Linear is the source of truth for ticket structure, acceptance criteria, and milestone sequencing.** The design doc has the game design; Linear has the execution plan.
+- **Milestones:** WEA-1 through WEA-8 (8 vertical slices). Bug tickets can be created during playtesting. Do not create new feature tickets unless explicitly scoping new work.
 
 ## Scope discipline
 

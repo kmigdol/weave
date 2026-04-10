@@ -237,26 +237,17 @@ Nothing from this list is touched until the MVP is end-to-end playable and deplo
 
 ## 13. Milestones
 
-Each milestone is a single Linear ticket tracked as WEAVE-1 through WEAVE-5.
+**Linear is the source of truth for ticket structure, acceptance criteria, and milestone sequencing.** The Linear team is `weave` (identifier `WEA`). This section is the original brainstorm summary — it may be out of date. Always check Linear for the current plan.
 
-### Milestone 1 — Skeleton ships to Vercel (WEAVE-1)
-Vite + Three.js scaffolded, pushed to GitHub, auto-deploying. Infinite road scrolls past a static camera. Cube moves between 5 lanes on keyboard + touch. Fixed-timestep loop in place. No assets, no traffic, no scoring.
-**Gate:** friend can load deployed URL on phone and move the cube.
+As of 2026-04-09, tickets have been restructured from the original 5-milestone plan into 8 smaller vertical slices (WEA-1 through WEA-8). Key changes from the original plan:
 
-### Milestone 2 — Full gameplay loop (WEAVE-2)
-Traffic spawns and scrolls. Collisions, near-miss detection, slipstream, boost, auto-accel. Crash → game over → restart. HUD shows score, combo, boost. Still programmer art.
-**Gate:** the game is *fun* with no art or audio. If it isn't fun now, adding art won't save it.
+- The gameplay loop was split into two tickets: traffic/collisions (WEA-2) and scoring/combo/slipstream/boost (WEA-3)
+- The look-and-feel pass was split into art (WEA-4) and audio/CRT polish (WEA-5)
+- The leaderboard ticket was split into basic leaderboard (WEA-6) and the top-10 billboards feature (WEA-7)
+- The top-10 billboards feature was promoted to MVP scope (see WEA-7 in Linear for the full design spec)
+- Stretch + submission moved to WEA-8
 
-### Milestone 3 — Look and feel (WEAVE-3)
-Kenney car models swapped in. Dusk skybox, CRT shader, bloom. Billboards with AI parody textures. Music + SFX + engine sound. On-ramp intro scripted.
-**Gate:** the game looks jam-trailer-worthy.
-
-### Milestone 4 — Leaderboard + polish (WEAVE-4)
-Supabase schema + edge function live. Name entry, submit, top-100 display. Title screen with top-3 attractor. Full mobile layout pass.
-**Gate:** a stranger on mobile goes from URL to leaderboard in under a minute with zero instructions.
-
-### Milestone 5 — Stretch + submission (WEAVE-5)
-Portal, share card, any stretch items as time allows. Submission form filled. Buffer for playtest bugs.
+Execution order: WEA-1 → WEA-2 → WEA-3 → WEA-4 → WEA-5 → WEA-6 → WEA-7 → WEA-8.
 
 ## 14. Risks & mitigations
 
