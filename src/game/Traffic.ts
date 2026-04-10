@@ -112,7 +112,11 @@ export class TrafficManager {
     }
   }
 
-  /** Remove all cars, return meshes to pool, reset spawn timer. Used on restart. */
+  /**
+   * Remove all cars, return meshes to pool, reset spawn timer. Used on restart.
+   * NOTE: Scoring state MUST be reset simultaneously — nextId resets to 1,
+   * so stale IDs in scoredCarIds could collide with new car IDs.
+   */
   reset(): void {
     for (let i = this.cars.length - 1; i >= 0; i--) {
       this.despawn(i);

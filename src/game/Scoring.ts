@@ -94,11 +94,13 @@ export function tickScoring(
     events.nearMiss = true;
   }
 
-  // Advance combo timer (after resetting if needed)
-  state.comboTimer += dt;
+  // Advance combo timer (only when combo is active — avoid unbounded growth)
+  if (state.combo > 0) {
+    state.comboTimer += dt;
 
-  if (state.comboTimer >= COMBO_DECAY_TIME) {
-    state.combo = 0;
+    if (state.comboTimer >= COMBO_DECAY_TIME) {
+      state.combo = 0;
+    }
   }
 
   // ── 3. Slipstreams ─────────────────────────────────────────────

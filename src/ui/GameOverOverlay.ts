@@ -34,9 +34,8 @@ export class GameOverOverlay {
 
     this.el.innerHTML = [
       `<div style="font-size:48px;font-weight:bold;letter-spacing:4px">GAME OVER</div>`,
-      `<div style="font-size:32px;font-weight:bold;color:#ffd700">score: ${dist} m</div>`,
+      `<div style="font-size:32px;font-weight:bold;color:#ffd700">${dist} m</div>`,
       `<div style="font-size:24px">best combo: ${combo}</div>`,
-      `<div style="font-size:24px">distance: ${dist} m</div>`,
       `<div style="font-size:24px">time: ${time}s</div>`,
       `<div style="font-size:18px;color:rgba(255,255,255,0.6)">press space to retry</div>`,
     ].join('');
