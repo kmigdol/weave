@@ -34,7 +34,7 @@ export const HAZARD_SWERVING_CHANCE = 0.05;
  * Per-lane speed multipliers (index 0 = leftmost = fastest).
  * Traffic cars get `playerSpeed * multiplier ± variation`.
  */
-export const LANE_SPEED_MULTIPLIERS = [0.85, 0.78, 0.7, 0.62, 0.55];
+export const LANE_SPEED_MULTIPLIERS = [0.92, 0.8, 0.68, 0.55, 0.42];
 /** Random speed variation applied to each car (± this fraction of its base). */
 export const LANE_SPEED_VARIATION = 0.18;
 /** Maximum number of lanes that can have a car within WALL_CHECK_DEPTH meters of the spawn point. */
