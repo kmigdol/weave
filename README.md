@@ -20,7 +20,7 @@ In development. See [the design doc](docs/plans/2026-04-09-weave-design.md) for 
 
 ## Play
 
-Once deployed, the game will be playable at a Vercel URL linked here. No install, no sign-up. Desktop and mobile.
+**[https://weave-rho-five.vercel.app](https://weave-rho-five.vercel.app/)** — no install, no sign-up. Desktop and mobile.
 
 ## License
 
