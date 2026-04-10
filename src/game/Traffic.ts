@@ -31,6 +31,7 @@ const NORMAL_SIZE = { w: 1.6, h: 1.2, l: 3.8 };
 const SEMI_SIZE = { w: 2.4, h: 2.0, l: 8.0 };
 
 export interface TrafficCar {
+  id: number; // unique numeric ID for scoring dedup
   lane: number;
   baseSpeed: number; // original assigned speed (m/s), never mutated
   speed: number; // effective speed this tick (may be clamped by following)
@@ -50,6 +51,8 @@ export class TrafficManager {
   private spawnTimer: number;
   private scene: Scene;
   private rng: () => number;
+  private nextId = 1;
+  private _despawnedIds: number[] = [];
 
   constructor(scene: Scene, rng?: () => number) {
     this.scene = scene;
@@ -115,11 +118,22 @@ export class TrafficManager {
       this.despawn(i);
     }
     this.spawnTimer = TRAFFIC_BASE_SPAWN_INTERVAL;
+    this.nextId = 1;
   }
 
   /** Get cars suitable for collision checking (zero-alloc — TrafficCar satisfies CollidableCar). */
   get collidables(): readonly TrafficCar[] {
     return this.cars;
+  }
+
+  /** IDs of cars despawned since last clearDespawnedIds() call. */
+  get despawnedIds(): readonly number[] {
+    return this._despawnedIds;
+  }
+
+  /** Clear the despawned-IDs buffer (Game.ts calls this after processing). */
+  clearDespawnedIds(): void {
+    this._despawnedIds.length = 0;
   }
 
   // ── Private helpers ───────────────────────────────────────────────
@@ -259,6 +273,7 @@ export class TrafficManager {
 
     const x = laneToX(lane);
     const car: TrafficCar = {
+      id: this.nextId++,
       lane,
       baseSpeed: speed,
       speed,
@@ -295,14 +310,14 @@ export class TrafficManager {
 
     if (type === 'semi') {
       geometry = new BoxGeometry(SEMI_SIZE.w, SEMI_SIZE.h, SEMI_SIZE.l);
-      material = new MeshStandardMaterial({ color: SEMI_COLOR });
+      material = new MeshStandardMaterial({ color: SEMI_COLOR, emissive: SEMI_COLOR, emissiveIntensity: 0.3 });
     } else if (type === 'swerving') {
       geometry = new BoxGeometry(NORMAL_SIZE.w, NORMAL_SIZE.h, NORMAL_SIZE.l);
-      material = new MeshStandardMaterial({ color: SWERVING_COLOR });
+      material = new MeshStandardMaterial({ color: SWERVING_COLOR, emissive: SWERVING_COLOR, emissiveIntensity: 0.3 });
     } else {
       geometry = new BoxGeometry(NORMAL_SIZE.w, NORMAL_SIZE.h, NORMAL_SIZE.l);
       const color = NORMAL_COLORS[Math.floor(this.rng() * NORMAL_COLORS.length)];
-      material = new MeshStandardMaterial({ color });
+      material = new MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3 });
     }
 
     const mesh = new Mesh(geometry, material);
@@ -312,6 +327,7 @@ export class TrafficManager {
 
   private despawn(index: number): void {
     const car = this.cars[index];
+    this._despawnedIds.push(car.id);
     car.mesh.visible = false;
     this.poolFor(car.type).push(car.mesh);
     this.cars.splice(index, 1);

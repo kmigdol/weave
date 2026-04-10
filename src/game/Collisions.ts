@@ -25,6 +25,7 @@ export interface CollisionBoxes {
 
 /** Minimal car shape needed by collisions (doesn't depend on Traffic.ts). */
 export interface CollidableCar {
+  id: number;
   x: number;
   z: number;
   type: 'normal' | 'semi' | 'swerving';

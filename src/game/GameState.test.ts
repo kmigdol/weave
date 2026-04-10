@@ -51,25 +51,31 @@ describe('GameState', () => {
   describe('crashRun', () => {
     it('transitions to gameOver phase', () => {
       const running = tickRun(startRun(), 5, 30);
-      const over = crashRun(running);
+      const over = crashRun(running, 3);
       expect(over.phase).toBe('gameOver');
     });
 
     it('preserves distanceMeters from the running state', () => {
       const running = tickRun(startRun(), 5, 30);
-      const over = crashRun(running);
+      const over = crashRun(running, 3);
       expect(over.distanceMeters).toBe(running.distanceMeters);
     });
 
     it('sets durationSeconds from elapsedSeconds', () => {
       const running = tickRun(startRun(), 5, 30);
-      const over = crashRun(running);
+      const over = crashRun(running, 3);
       expect(over.durationSeconds).toBe(running.elapsedSeconds);
+    });
+
+    it('preserves bestCombo', () => {
+      const running = tickRun(startRun(), 5, 30);
+      const over = crashRun(running, 7);
+      expect(over.bestCombo).toBe(7);
     });
 
     it('returns a new object (not the running state)', () => {
       const running = tickRun(startRun(), 5, 30);
-      const over = crashRun(running);
+      const over = crashRun(running, 0);
       expect(over).not.toBe(running);
     });
   });

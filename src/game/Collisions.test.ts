@@ -16,8 +16,9 @@ import {
 } from './constants';
 
 // ── Helpers ───────────────────────────────────────────────────────────
+let nextTestId = 1;
 function makeCar(overrides: Partial<CollidableCar> = {}): CollidableCar {
-  return { x: 0, z: -10, type: 'normal', ...overrides };
+  return { id: nextTestId++, x: 0, z: -10, type: 'normal', ...overrides };
 }
 
 // ── computeBoxes ──────────────────────────────────────────────────────

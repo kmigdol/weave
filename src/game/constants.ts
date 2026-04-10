@@ -74,3 +74,29 @@ export const PLAYER_Z = 0;
 // ── Active-Set ──────────────────────────────────────────────────────
 /** Only check collisions with cars within this distance of the player. */
 export const COLLISION_ACTIVE_RANGE = 50;
+
+// ── Scoring / Combo / Boost ────────────────────────────────────────
+/** Speed increase per combo level on near-miss (fraction of base speed). */
+export const NEAR_MISS_BURST_PER_COMBO = 0.10;
+/** Duration of a near-miss speed burst (seconds). */
+export const NEAR_MISS_BURST_DURATION = 0.5;
+/** Seconds before combo decays back to 0. */
+export const COMBO_DECAY_TIME = 3.0;
+/** Seconds spent in slipstream zone to trigger BOOST. */
+export const SLIPSTREAM_CHARGE_TIME = 1.0;
+/** Speed bonus while BOOST is active (fraction of base speed). */
+export const BOOST_SPEED_BONUS = 0.30;
+/** BOOST duration in seconds. */
+export const BOOST_DURATION = 3.0;
+
+// ── Camera Effects ─────────────────────────────────────────────────
+/** FOV increase (degrees) during BOOST. */
+export const BOOST_FOV_INCREASE = 8;
+/** Camera shake amplitude on near-miss (meters). */
+export const SHAKE_NEAR_MISS_AMPLITUDE = 0.05;
+/** Camera shake duration on near-miss (seconds). */
+export const SHAKE_NEAR_MISS_DURATION = 0.15;
+/** Camera shake amplitude on crash (meters). */
+export const SHAKE_CRASH_AMPLITUDE = 0.3;
+/** Camera shake duration on crash (seconds). */
+export const SHAKE_CRASH_DURATION = 0.4;

@@ -4,7 +4,7 @@ export class GameOverOverlay {
   private el: HTMLDivElement | null = null;
 
   /** Show the overlay with run stats. Creates the DOM element if needed. */
-  show(distanceMeters: number, durationSeconds: number): void {
+  show(distanceMeters: number, durationSeconds: number, bestCombo: number = 0): void {
     if (!this.el) {
       this.el = document.createElement('div');
       this.el.id = 'game-over-overlay';
@@ -13,6 +13,7 @@ export class GameOverOverlay {
 
     const dist = formatter.format(Math.round(distanceMeters));
     const time = Math.round(durationSeconds);
+    const combo = `\u00d7${bestCombo}`;
 
     Object.assign(this.el.style, {
       position: 'fixed',
@@ -33,7 +34,9 @@ export class GameOverOverlay {
 
     this.el.innerHTML = [
       `<div style="font-size:48px;font-weight:bold;letter-spacing:4px">GAME OVER</div>`,
-      `<div style="font-size:24px">distance: ${dist}m</div>`,
+      `<div style="font-size:32px;font-weight:bold;color:#ffd700">score: ${dist} m</div>`,
+      `<div style="font-size:24px">best combo: ${combo}</div>`,
+      `<div style="font-size:24px">distance: ${dist} m</div>`,
       `<div style="font-size:24px">time: ${time}s</div>`,
       `<div style="font-size:18px;color:rgba(255,255,255,0.6)">press space to retry</div>`,
     ].join('');
