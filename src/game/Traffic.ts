@@ -17,6 +17,8 @@ import {
   SPEED_MAX_MS,
   MAX_LANES_AT_SPAWN_DEPTH,
   WALL_CHECK_DEPTH,
+  MAX_LANES_IN_BAND,
+  WALL_BAND_WIDTH,
 } from './constants';
 
 // ── Color Palettes ──────────────────────────────────────────────────
@@ -62,11 +64,13 @@ export class TrafficManager {
     }
 
     // 2. Same-lane following: prevent cars from clipping through each other.
-    // For each lane, sort cars by z (most negative = furthest ahead) and
-    // clamp any car that would overlap the one ahead of it.
     this.enforceLaneFollowing();
 
-    // 3. Update swerving cars
+    // 3. Wall-buster: scan z-bands ahead of player and speed up a car
+    //    if too many lanes are blocked in the same band.
+    this.bustWalls(playerSpeed);
+
+    // 4. Update swerving cars
     for (const car of this.cars) {
       if (car.type === 'swerving') {
         car.swayPhase += SWERVE_FREQUENCY * dtSeconds;
@@ -76,19 +80,19 @@ export class TrafficManager {
       }
     }
 
-    // 4. Sync mesh positions
+    // 5. Sync mesh positions
     for (const car of this.cars) {
       car.mesh.position.set(car.x, car.meshY, car.z);
     }
 
-    // 5. Despawn cars behind player
+    // 6. Despawn cars behind player
     for (let i = this.cars.length - 1; i >= 0; i--) {
       if (this.cars[i].z > TRAFFIC_DESPAWN_DISTANCE) {
         this.despawn(i);
       }
     }
 
-    // 6. Maybe spawn new car (timer-based)
+    // 7. Maybe spawn new car (timer-based)
     this.spawnTimer -= dtSeconds;
     if (this.spawnTimer <= 0) {
       const spawned = this.trySpawn(playerSpeed);
@@ -149,6 +153,42 @@ export class TrafficManager {
           // Match speed so it doesn't keep pushing
           behind.speed = Math.min(behind.speed, ahead.speed);
         }
+      }
+    }
+  }
+
+  /**
+   * Scan z-bands ahead of the player. If any band has more than
+   * MAX_LANES_IN_BAND lanes occupied, speed up the slowest car in
+   * that band so it clears out and opens a gap.
+   */
+  private bustWalls(playerSpeed: number): void {
+    // Scan bands from just ahead of the player out to spawn distance
+    const scanStart = -5;   // just ahead of player
+    const scanEnd = -TRAFFIC_SPAWN_DISTANCE;
+
+    for (let bandZ = scanStart; bandZ > scanEnd; bandZ -= WALL_BAND_WIDTH) {
+      const bandMin = bandZ - WALL_BAND_WIDTH;
+      const bandMax = bandZ;
+
+      // Collect unique lanes occupied in this band
+      const lanesInBand = new Set<number>();
+      let slowestCar: TrafficCar | null = null;
+      let slowestSpeed = Infinity;
+
+      for (const car of this.cars) {
+        if (car.z >= bandMin && car.z <= bandMax) {
+          lanesInBand.add(car.lane);
+          if (car.speed < slowestSpeed) {
+            slowestSpeed = car.speed;
+            slowestCar = car;
+          }
+        }
+      }
+
+      // If too many lanes blocked, accelerate the slowest car to break the wall
+      if (lanesInBand.size > MAX_LANES_IN_BAND && slowestCar) {
+        slowestCar.speed = playerSpeed * 0.95;
       }
     }
   }

@@ -38,9 +38,13 @@ export const LANE_SPEED_MULTIPLIERS = [0.92, 0.8, 0.68, 0.55, 0.42];
 /** Random speed variation applied to each car (± this fraction of its base). */
 export const LANE_SPEED_VARIATION = 0.18;
 /** Maximum number of lanes that can have a car within WALL_CHECK_DEPTH meters of the spawn point. */
-export const MAX_LANES_AT_SPAWN_DEPTH = 3;
+export const MAX_LANES_AT_SPAWN_DEPTH = 2;
 /** How deep (meters) to look around the spawn z when checking for lane walls. */
-export const WALL_CHECK_DEPTH = 15;
+export const WALL_CHECK_DEPTH = 20;
+/** Max lanes occupied in any z-band ahead of the player (runtime wall-buster). */
+export const MAX_LANES_IN_BAND = 3;
+/** Width of z-bands to scan for wall-buster (meters). */
+export const WALL_BAND_WIDTH = 12;
 /** Semi trucks are this fraction of their normal lane speed. */
 export const SEMI_SPEED_FACTOR = 0.6;
 
