@@ -62,8 +62,8 @@ export const NEAR_MISS_PADDING = 1.5;
 export const SLIPSTREAM_LENGTH = 12;
 
 // ── Player ──────────────────────────────────────────────────────────
-/** Player car hit-box half-widths [halfX, halfZ]. */
-export const HITBOX_PLAYER: [number, number] = [0.8, 1.9];
+/** Player car hit-box half-widths [halfX, halfZ] — slightly forgiving to allow close clips. */
+export const HITBOX_PLAYER: [number, number] = [0.55, 1.5];
 /** Player z-position in world space (stationary). */
 export const PLAYER_Z = 0;
 
