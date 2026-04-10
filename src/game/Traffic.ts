@@ -61,13 +61,17 @@ export class TrafficManager {
       car.z += (playerSpeed - car.speed) * dtSeconds;
     }
 
-    // 2. Update swerving cars
+    // 2. Same-lane following: prevent cars from clipping through each other.
+    // For each lane, sort cars by z (most negative = furthest ahead) and
+    // clamp any car that would overlap the one ahead of it.
+    this.enforceLaneFollowing();
+
+    // 3. Update swerving cars
     for (const car of this.cars) {
       if (car.type === 'swerving') {
         car.swayPhase += SWERVE_FREQUENCY * dtSeconds;
         car.x = laneToX(car.lane) + Math.sin(car.swayPhase) * SWERVE_AMPLITUDE;
       } else {
-        // 3. Non-swerving car x from lane
         car.x = laneToX(car.lane);
       }
     }
@@ -109,6 +113,45 @@ export class TrafficManager {
   }
 
   // ── Private helpers ───────────────────────────────────────────────
+
+  /** Minimum z-gap between two cars based on their lengths. */
+  private static minFollowGap(ahead: TrafficCar, behind: TrafficCar): number {
+    const aHalfZ = ahead.type === 'semi' ? 4.0 : 1.9;
+    const bHalfZ = behind.type === 'semi' ? 4.0 : 1.9;
+    return aHalfZ + bHalfZ + 1.0; // +1m buffer
+  }
+
+  /**
+   * For each lane, sort cars by z and clamp any car that overlaps the one
+   * ahead. The trailing car matches speed with the leader so it doesn't
+   * keep pushing into it.
+   */
+  private enforceLaneFollowing(): void {
+    // Group cars by lane (reuse arrays to avoid alloc)
+    const lanes: TrafficCar[][] = [];
+    for (let i = 0; i < NUM_LANES; i++) lanes.push([]);
+    for (const car of this.cars) {
+      lanes[car.lane].push(car);
+    }
+
+    for (const laneCars of lanes) {
+      if (laneCars.length < 2) continue;
+      // Sort by z ascending (most negative = furthest ahead)
+      laneCars.sort((a, b) => a.z - b.z);
+      // Walk from second car onward; clamp to behind the car ahead
+      for (let i = 1; i < laneCars.length; i++) {
+        const ahead = laneCars[i - 1];
+        const behind = laneCars[i];
+        const minGap = TrafficManager.minFollowGap(ahead, behind);
+        const minZ = ahead.z + minGap;
+        if (behind.z < minZ) {
+          behind.z = minZ;
+          // Match speed so it doesn't keep pushing
+          behind.speed = Math.min(behind.speed, ahead.speed);
+        }
+      }
+    }
+  }
 
   private getSpawnInterval(playerSpeed: number): number {
     // Lerp from BASE to MIN based on speed ratio
