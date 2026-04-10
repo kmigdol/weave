@@ -1,6 +1,6 @@
 // ── Speed Curve ─────────────────────────────────────────────────────
-/** Minimum speed at t=0 in meters/second (~80 mph). */
-export const SPEED_MIN_MS = 35.8;
+/** Minimum speed at t=0 in meters/second (~55 mph). */
+export const SPEED_MIN_MS = 24.6;
 /** Maximum (plateau) speed in meters/second (~180 mph). */
 export const SPEED_MAX_MS = 80.5;
 /** Time-constant for the exponential ease-out (seconds). */

@@ -9,8 +9,9 @@ describe('getSpeed', () => {
 
   it('returns close to SPEED_MAX_MS at t=90', () => {
     const speed = getSpeed(90);
-    // After 90 seconds (3 time constants), should be ~95% of the way
-    expect(speed).toBeGreaterThanOrEqual(78);
+    // After 90 seconds (3 time constants), should be ~95% of the way to max
+    const expected95pct = SPEED_MIN_MS + (SPEED_MAX_MS - SPEED_MIN_MS) * 0.9;
+    expect(speed).toBeGreaterThanOrEqual(expected95pct);
     expect(speed).toBeLessThan(SPEED_MAX_MS);
   });
 
