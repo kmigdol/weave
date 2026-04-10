@@ -61,7 +61,7 @@ export const HITBOX_NORMAL: [number, number] = [0.8, 1.9];
 export const HITBOX_SEMI: [number, number] = [1.2, 4.0];
 
 /** Lateral padding added to each side for near-miss zone (meters). */
-export const NEAR_MISS_PADDING = 1.5;
+export const NEAR_MISS_PADDING = 2.2;
 /** Length of slipstream zone behind the car (meters). */
 export const SLIPSTREAM_LENGTH = 12;
 
