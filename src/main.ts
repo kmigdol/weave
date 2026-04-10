@@ -1,5 +1,8 @@
 import './style.css';
+import { inject } from '@vercel/analytics';
 import { Game } from './game/Game';
+
+inject();
 
 const canvas = document.getElementById('game');
 if (!(canvas instanceof HTMLCanvasElement)) {
