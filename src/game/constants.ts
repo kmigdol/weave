@@ -8,7 +8,7 @@ export const SPEED_TAU = 30;
 
 // ── Traffic Spawning ────────────────────────────────────────────────
 /** Distance ahead of the player where new traffic spawns (meters). */
-export const TRAFFIC_SPAWN_DISTANCE = 150;
+export const TRAFFIC_SPAWN_DISTANCE = 80;
 /** Distance behind the player where traffic is despawned (meters). */
 export const TRAFFIC_DESPAWN_DISTANCE = 50;
 /** Minimum gap in meters between two cars in the same lane. */

@@ -18,9 +18,9 @@ import {
 } from './constants';
 
 // ── Color Palettes ──────────────────────────────────────────────────
-const NORMAL_COLORS = [0x3366cc, 0xcc3333, 0x33aa33, 0xeeee33, 0xffffff];
-const SWERVING_COLOR = 0xff8800; // orange
-const SEMI_COLOR = 0x888888; // gray
+const NORMAL_COLORS = [0x66aaff, 0xff6666, 0x66dd77, 0xffee55, 0xeeeeff, 0xdd88ff, 0x55dddd];
+const SWERVING_COLOR = 0xffaa33; // bright orange
+const SEMI_COLOR = 0xbbbbbb; // light gray
 
 // ── Mesh Dimensions ─────────────────────────────────────────────────
 const NORMAL_SIZE = { w: 1.6, h: 1.2, l: 3.8 };
