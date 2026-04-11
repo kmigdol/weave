@@ -271,19 +271,22 @@ export class Renderer {
     building(545, 30, 40);
 
     // ── Salesforce Tower (x ≈ 600 + S, tallest) ────────────────────
-    // Rounded rectangle approximation
+    // Tapered obelisk shape — wide base narrowing to a rounded bullet top
     ctx.beginPath();
-    const stX = 590 + S;
-    const stW = 35;
-    const stH = 175;
-    const stTop = ch - 30 - stH;
-    const stR = 10; // corner radius
-    ctx.moveTo(stX, ch - 30);
-    ctx.lineTo(stX, stTop + stR);
-    ctx.quadraticCurveTo(stX, stTop, stX + stR, stTop);
-    ctx.lineTo(stX + stW - stR, stTop);
-    ctx.quadraticCurveTo(stX + stW, stTop, stX + stW, stTop + stR);
-    ctx.lineTo(stX + stW, ch - 30);
+    const stCx = 607 + S; // center x
+    const stBaseHW = 20;  // half-width at base
+    const stTopHW = 10;   // half-width at top (tapered)
+    const stH = 185;
+    const stBase = ch - 30;
+    const stTop = stBase - stH;
+    // Left edge — tapers inward
+    ctx.moveTo(stCx - stBaseHW, stBase);
+    ctx.lineTo(stCx - stTopHW, stTop + 30);
+    // Rounded bullet top
+    ctx.quadraticCurveTo(stCx - stTopHW, stTop + 8, stCx, stTop);
+    ctx.quadraticCurveTo(stCx + stTopHW, stTop + 8, stCx + stTopHW, stTop + 30);
+    // Right edge — tapers inward
+    ctx.lineTo(stCx + stBaseHW, stBase);
     ctx.closePath();
     ctx.fill();
 
