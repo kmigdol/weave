@@ -253,7 +253,10 @@ export class Game {
     // Do NOT update traffic during onRamp
     // Do NOT process input during onRamp (already gated by phase check)
 
-    // TODO: "101 N" sign at t~1.5s
+    // Show "101 NORTH" highway sign at t ≈ 1.5s
+    if (onRamp.elapsedSeconds < 1.5 && newElapsed >= 1.5) {
+      this.flashHighwaySign();
+    }
 
     this.state = nextState;
 
@@ -265,6 +268,68 @@ export class Game {
       this.playerMesh.position.z = 0;
       this.flashGo();
     }
+  }
+
+  private flashHighwaySign(): void {
+    const sign = document.createElement('div');
+    Object.assign(sign.style, {
+      position: 'fixed',
+      right: '8%',
+      top: '25%',
+      background: '#006633',
+      border: '4px solid #ffffff',
+      borderRadius: '6px',
+      padding: '12px 28px',
+      fontFamily: 'monospace',
+      pointerEvents: 'none',
+      zIndex: '1000',
+      opacity: '1',
+      transition: 'transform 1.8s ease-in, opacity 0.8s ease-in 1.0s',
+    } satisfies Partial<CSSStyleDeclaration>);
+
+    // Shield + route number
+    const route = document.createElement('div');
+    Object.assign(route.style, {
+      fontSize: '42px',
+      fontWeight: 'bold',
+      color: '#ffffff',
+      textAlign: 'center',
+      lineHeight: '1',
+    } satisfies Partial<CSSStyleDeclaration>);
+    route.textContent = '101';
+    sign.appendChild(route);
+
+    const direction = document.createElement('div');
+    Object.assign(direction.style, {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#ffffff',
+      textAlign: 'center',
+      letterSpacing: '4px',
+      marginTop: '4px',
+    } satisfies Partial<CSSStyleDeclaration>);
+    direction.textContent = 'NORTH';
+    sign.appendChild(direction);
+
+    const city = document.createElement('div');
+    Object.assign(city.style, {
+      fontSize: '14px',
+      color: '#ffffff',
+      textAlign: 'center',
+      marginTop: '8px',
+      opacity: '0.8',
+    } satisfies Partial<CSSStyleDeclaration>);
+    city.textContent = 'San Francisco';
+    sign.appendChild(city);
+
+    document.body.appendChild(sign);
+
+    // Animate: slide left as if passing by, then fade
+    void sign.offsetHeight;
+    sign.style.transform = 'translateX(-120vw)';
+    sign.style.opacity = '0';
+
+    setTimeout(() => sign.remove(), 2000);
   }
 
   private flashGo(): void {
