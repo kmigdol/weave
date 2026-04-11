@@ -243,7 +243,7 @@ export class HUD {
     if (this.floatTimer !== null) {
       clearTimeout(this.floatTimer);
     }
-    this.floatEl.textContent = combo <= 1 ? '+NEAR MISS' : `+COMBO \u00d7${combo}`;
+    this.floatEl.textContent = combo <= 1 ? '+NEAR MISS' : `+WEAVE \u00d7${combo}`;
     // Reset position for re-trigger
     this.floatEl.style.transition = 'none';
     this.floatEl.style.top = '40%';
