@@ -78,23 +78,23 @@ export class Renderer {
     this.skylineMesh = this.createSkylineMesh();
     this.scene.add(this.skylineMesh);
 
-    // ── Dusk lighting ──────────────────────────────────────────────
-    // Warm key light (sun) — low angle for dusk
-    const sunLight = new DirectionalLight('#ffb07a', 1.2);
-    sunLight.position.set(-20, 15, -40);
+    // ── Golden hour lighting ───────────────────────────────────────
+    // Warm key light (sun) — bright golden hour
+    const sunLight = new DirectionalLight('#ffe0a0', 1.8);
+    sunLight.position.set(-20, 25, -40);
     this.scene.add(sunLight);
 
-    // Cool ambient fill — blue sky / dark ground
-    const hemi = new HemisphereLight('#4466aa', '#1a0a28', 0.5);
+    // Bright ambient fill — warm sky / warm ground
+    const hemi = new HemisphereLight('#87ceeb', '#e8c090', 0.8);
     this.scene.add(hemi);
 
     // Rim light for car readability — behind-right
-    const rimLight = new DirectionalLight('#88aaff', 0.4);
+    const rimLight = new DirectionalLight('#aaccff', 0.5);
     rimLight.position.set(15, 10, 30);
     this.scene.add(rimLight);
 
-    // Exponential fog for atmospheric depth
-    this.scene.fog = new FogExp2('#1a0a28', 0.004);
+    // Light atmospheric fog
+    this.scene.fog = new FogExp2('#d4a574', 0.0015);
 
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
     this.camera.position.set(0, CAMERA_HEIGHT, CAMERA_BEHIND);
@@ -139,16 +139,16 @@ export class Renderer {
       fragmentShader: /* glsl */ `
         varying float vY;
         void main() {
-          // Three-stop dusk gradient: orange → magenta → navy
-          vec3 orange  = vec3(1.0, 0.418, 0.208);   // #ff6b35
-          vec3 magenta = vec3(0.761, 0.094, 0.357);  // #c2185b
-          vec3 navy    = vec3(0.039, 0.086, 0.157);  // #0a1628
+          // Three-stop golden hour gradient: warm gold → peach → soft blue
+          vec3 gold    = vec3(1.0, 0.75, 0.3);     // #ffbf4d
+          vec3 peach   = vec3(0.95, 0.55, 0.4);     // #f28c66
+          vec3 skyBlue = vec3(0.35, 0.55, 0.85);    // #598cd9
 
-          float t1 = smoothstep(-1.0, 0.0, vY);   // orange → magenta
-          float t2 = smoothstep(0.0, 0.4, vY);     // magenta → navy
+          float t1 = smoothstep(-1.0, 0.05, vY);   // gold → peach
+          float t2 = smoothstep(0.05, 0.5, vY);     // peach → sky blue
 
-          vec3 color = mix(orange, magenta, t1);
-          color = mix(color, navy, t2);
+          vec3 color = mix(gold, peach, t1);
+          color = mix(color, skyBlue, t2);
 
           gl_FragColor = vec4(color, 1.0);
         }

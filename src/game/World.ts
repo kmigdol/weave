@@ -37,7 +37,7 @@ export class World {
     const road = new Mesh(
       new PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
       new MeshStandardMaterial({
-        color: '#2a2a32',
+        color: '#555560',
         roughness: 0.9,
         metalness: 0.0,
         side: DoubleSide,
