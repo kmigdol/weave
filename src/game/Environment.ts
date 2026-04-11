@@ -245,28 +245,70 @@ export class Environment {
 
   private createPalmTree(): Group {
     const tree = new Group();
-
-    // Trunk — slightly tapered cylinder
-    const trunkGeo = new CylinderGeometry(0.15, 0.25, 6, 6);
     const trunkMat = new MeshStandardMaterial({ color: '#8B6914', roughness: 0.9 });
-    const trunk = new Mesh(trunkGeo, trunkMat);
-    trunk.position.set(0, 3, 0);
-    tree.add(trunk);
 
-    // Canopy — 3 cones at the top, slightly offset/rotated
-    const canopyMat = new MeshStandardMaterial({ color: '#228B22', roughness: 0.8 });
-    const coneOffsets = [
-      { x: 0, y: 7, z: 0, rotZ: 0 },
-      { x: 0.5, y: 6.6, z: 0.4, rotZ: 0.2 },
-      { x: -0.4, y: 6.4, z: -0.3, rotZ: -0.15 },
-    ];
+    // Tall curved trunk — built from stacked tapered segments
+    const segments = 5;
+    const trunkHeight = 10;
+    const segH = trunkHeight / segments;
+    // Random lean direction for variety
+    const leanX = (Math.random() - 0.5) * 0.4;
+    const leanZ = (Math.random() - 0.5) * 0.2;
 
-    for (const off of coneOffsets) {
-      const coneGeo = new ConeGeometry(1.5, 2, 6);
-      const cone = new Mesh(coneGeo, canopyMat);
-      cone.position.set(off.x, off.y, off.z);
-      cone.rotation.set(0, 0, off.rotZ);
-      tree.add(cone);
+    let curX = 0;
+    let curZ = 0;
+    for (let i = 0; i < segments; i++) {
+      const topR = 0.12 - i * 0.015; // thins toward top
+      const botR = 0.18 - i * 0.012;
+      const seg = new Mesh(
+        new CylinderGeometry(Math.max(topR, 0.05), Math.max(botR, 0.06), segH, 6),
+        trunkMat,
+      );
+      // Progressive lean — each segment offsets a bit more
+      curX += leanX * (i / segments);
+      curZ += leanZ * (i / segments);
+      seg.position.set(curX, segH * i + segH / 2, curZ);
+      // Slight tilt to follow the lean
+      seg.rotation.z = leanX * 0.15;
+      seg.rotation.x = -leanZ * 0.15;
+      tree.add(seg);
+    }
+
+    // Crown — fronds radiating outward from the top
+    const crownY = trunkHeight + 0.3;
+    const crownX = curX + leanX * 0.3;
+    const crownZ = curZ + leanZ * 0.3;
+    const frondMat = new MeshStandardMaterial({
+      color: '#2d8a2d',
+      roughness: 0.7,
+      side: DoubleSide,
+    });
+
+    // 6-8 fronds fanning outward and drooping
+    const frondCount = 6 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < frondCount; i++) {
+      const angle = (i / frondCount) * Math.PI * 2 + Math.random() * 0.3;
+      // Elongated cone = frond shape
+      const frondGeo = new ConeGeometry(0.6, 3.5, 4);
+      const frond = new Mesh(frondGeo, frondMat);
+      frond.position.set(
+        crownX + Math.cos(angle) * 1.2,
+        crownY - 0.5,
+        crownZ + Math.sin(angle) * 1.2,
+      );
+      // Point outward and droop
+      frond.rotation.z = Math.cos(angle) * 1.1;
+      frond.rotation.x = -Math.sin(angle) * 1.1;
+      tree.add(frond);
+    }
+
+    // Small coconut cluster at the crown base
+    const coconutMat = new MeshStandardMaterial({ color: '#5c4a1e', roughness: 0.8 });
+    for (let i = 0; i < 3; i++) {
+      const nut = new Mesh(new CylinderGeometry(0.12, 0.12, 0.15, 5), coconutMat);
+      const a = (i / 3) * Math.PI * 2;
+      nut.position.set(crownX + Math.cos(a) * 0.2, crownY - 0.1, crownZ + Math.sin(a) * 0.2);
+      tree.add(nut);
     }
 
     return tree;
