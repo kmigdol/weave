@@ -63,6 +63,7 @@ const BILLBOARD_SPECS: BillboardSpec[] = [
   { text: 'AN PHONG', bgColor: '#facc15', textColor: '#1e40af', fontSize: 52, fontStyle: 'bold 52px sans-serif', subtitle: 'INJURED IN AN AI ACCIDENT?  1-800-SHADING', accentColor: '#dc2626' },
   { text: 'MY OTHER CAR IS A FOUNDATION MODEL', bgColor: '#1e3a5f', textColor: '#ffffff', fontSize: 28, fontStyle: 'bold 28px sans-serif' },
   { text: 'DISRUPTING THE DISRUPTION', bgColor: '#000000', textColor: '#ffffff', fontSize: 44, fontStyle: 'bold 44px sans-serif' },
+  { text: 'OpenClaw', bgColor: '#ff4d6a', textColor: '#ffffff', fontSize: 52, fontStyle: 'bold 52px sans-serif', subtitle: 'Dating For Your AI Agent' },
 ];
 
 /**
