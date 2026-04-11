@@ -29,7 +29,7 @@ export class HUD {
   private prevSpeed = '';
   private prevCombo = -1;
   private prevBoostWidth = '';
-  private prevBoostActive = false;
+  private prevBarMode: 'idle' | 'slipstream' | 'burst' | 'boost' = 'idle';
 
   constructor() {
     // --- Root container ---
@@ -181,6 +181,8 @@ export class HUD {
     boostMaxDuration: number,
     slipstreamProgress: number,
     speedMs: number,
+    burstTimer: number,
+    burstMaxDuration: number,
   ): void {
     // Score
     const scoreText = `${formatter.format(Math.round(distance))} m`;
@@ -208,33 +210,65 @@ export class HUD {
       this.prevCombo = combo;
     }
 
-    // Boost meter
+    // Boost meter — priority: BOOST > burst > slipstream charging > idle
     const isBoosting = boostTimer > 0 && boostMaxDuration > 0;
-    const fillFraction = isBoosting
-      ? boostTimer / boostMaxDuration
-      : Math.max(0, Math.min(1, slipstreamProgress));
-    const widthPct = `${Math.round(fillFraction * 100)}%`;
+    const isBursting = burstTimer > 0 && burstMaxDuration > 0;
 
+    let fillFraction: number;
+    let barMode: 'idle' | 'slipstream' | 'burst' | 'boost';
+
+    if (isBoosting) {
+      fillFraction = boostTimer / boostMaxDuration;
+      barMode = 'boost';
+    } else if (isBursting) {
+      fillFraction = burstTimer / burstMaxDuration;
+      barMode = 'burst';
+    } else if (slipstreamProgress > 0) {
+      fillFraction = Math.min(1, slipstreamProgress);
+      barMode = 'slipstream';
+    } else {
+      fillFraction = 0;
+      barMode = 'idle';
+    }
+
+    const widthPct = `${Math.round(fillFraction * 100)}%`;
     if (widthPct !== this.prevBoostWidth) {
       this.boostInner.style.width = widthPct;
       this.prevBoostWidth = widthPct;
     }
 
-    if (isBoosting !== this.prevBoostActive) {
-      if (isBoosting) {
-        this.boostInner.style.background = '#ff6600';
-        this.boostInner.style.boxShadow = '0 0 12px #ff6600, 0 0 24px #ff6600';
-        this.boostOuter.style.borderColor = '#ff8800';
-        this.boostLabel.style.color = '#ff8800';
-        this.boostLabel.textContent = 'BOOST!';
-      } else {
-        this.boostInner.style.background = '#00ccff';
-        this.boostInner.style.boxShadow = 'none';
-        this.boostOuter.style.borderColor = 'rgba(255,255,255,0.5)';
-        this.boostLabel.style.color = 'rgba(255,255,255,0.6)';
-        this.boostLabel.textContent = 'boost';
+    if (barMode !== this.prevBarMode) {
+      switch (barMode) {
+        case 'boost':
+          this.boostInner.style.background = '#ff6600';
+          this.boostInner.style.boxShadow = '0 0 12px #ff6600, 0 0 24px #ff6600';
+          this.boostOuter.style.borderColor = '#ff8800';
+          this.boostLabel.style.color = '#ff8800';
+          this.boostLabel.textContent = 'BOOST!';
+          break;
+        case 'burst':
+          this.boostInner.style.background = '#ffcc00';
+          this.boostInner.style.boxShadow = '0 0 10px #ffcc00';
+          this.boostOuter.style.borderColor = '#ffaa00';
+          this.boostLabel.style.color = '#ffaa00';
+          this.boostLabel.textContent = 'WEAVE!';
+          break;
+        case 'slipstream':
+          this.boostInner.style.background = '#00ccff';
+          this.boostInner.style.boxShadow = 'none';
+          this.boostOuter.style.borderColor = 'rgba(255,255,255,0.5)';
+          this.boostLabel.style.color = 'rgba(255,255,255,0.6)';
+          this.boostLabel.textContent = 'boost';
+          break;
+        default:
+          this.boostInner.style.background = '#00ccff';
+          this.boostInner.style.boxShadow = 'none';
+          this.boostOuter.style.borderColor = 'rgba(255,255,255,0.5)';
+          this.boostLabel.style.color = 'rgba(255,255,255,0.6)';
+          this.boostLabel.textContent = 'boost';
+          break;
       }
-      this.prevBoostActive = isBoosting;
+      this.prevBarMode = barMode;
     }
   }
 

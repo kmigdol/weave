@@ -11,7 +11,7 @@ import { startRun, tickRun, crashRun, type GameState, type RunningState } from '
 import { initScoring, tickScoring, getSpeedMultiplier, resetScoring, type ScoringState } from './Scoring';
 import { GameOverOverlay } from '../ui/GameOverOverlay';
 import { HUD } from '../ui/HUD';
-import { BOOST_DURATION, SLIPSTREAM_CHARGE_TIME } from './constants';
+import { BOOST_DURATION, SLIPSTREAM_CHARGE_TIME, NEAR_MISS_BURST_DURATION } from './constants';
 
 const TICK_SECONDS = 1 / 60;
 
@@ -130,6 +130,8 @@ export class Game {
         BOOST_DURATION,
         slipstreamProgress,
         this.currentSpeed,
+        this.scoring.burstTimer,
+        NEAR_MISS_BURST_DURATION,
       );
     }
 
