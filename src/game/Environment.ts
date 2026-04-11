@@ -56,7 +56,7 @@ const BILLBOARD_SPECS: BillboardSpec[] = [
   { text: 'AI for AI', bgColor: '#1a73e8', textColor: '#ffffff', fontSize: 48, fontStyle: 'bold 48px sans-serif' },
   { text: 'STOP HIRING HUMANS', bgColor: '#dc2626', textColor: '#ffffff', fontSize: 44, fontStyle: 'bold 44px sans-serif' },
   { text: 'WE RAISED $400M', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 46, fontStyle: 'bold 46px sans-serif' },
-  { text: 'Nexus.', bgColor: '#6b7280', textColor: '#ffffff', fontSize: 50, fontStyle: '50px sans-serif' },
+  { text: 'Agility.', bgColor: '#6b7280', textColor: '#ffffff', fontSize: 50, fontStyle: '50px sans-serif' },
   { text: 'Pre-Revenue, Post-Vibes', bgColor: '#fda4af', textColor: '#1e1b4b', fontSize: 36, fontStyle: 'italic 36px sans-serif' },
   { text: 'HONK IF YOU\'VE BEEN DISRUPTED', bgColor: '#facc15', textColor: '#000000', fontSize: 32, fontStyle: 'bold 32px sans-serif' },
   { text: 'YOUR AD HERE', bgColor: '#ffffff', textColor: '#6b7280', fontSize: 36, fontStyle: '36px sans-serif', subtitle: 'WE ACCEPT EQUITY' },
