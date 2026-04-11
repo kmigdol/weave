@@ -197,17 +197,17 @@ export class Renderer {
     // Fill transparent
     ctx.clearRect(0, 0, cw, ch);
 
-    const FILL = '#0a0f1e';
+    const FILL = '#1a2035';
 
     // ── Distant hills (behind city, lighter shade for depth) ──────
-    ctx.fillStyle = '#1a2540';
+    ctx.fillStyle = '#2a3858';
     ctx.beginPath();
     ctx.moveTo(0, ch);
     for (let x = 0; x <= cw; x++) {
-      const y = ch - 60
-        + Math.sin(x * 0.0015 + 0.5) * 35
-        + Math.sin(x * 0.004 + 1.2) * 15
-        + Math.sin(x * 0.009) * 8;
+      const y = ch - 70
+        + Math.sin(x * 0.0015 + 0.5) * 40
+        + Math.sin(x * 0.004 + 1.2) * 18
+        + Math.sin(x * 0.009) * 10;
       ctx.lineTo(x, y);
     }
     ctx.lineTo(cw, ch);
@@ -215,7 +215,7 @@ export class Renderer {
     ctx.fill();
 
     // ── Mid hills (between distant and city, medium shade) ────────
-    ctx.fillStyle = '#111b30';
+    ctx.fillStyle = '#1f2d48';
     ctx.beginPath();
     ctx.moveTo(0, ch);
     for (let x = 0; x <= cw; x++) {
@@ -240,25 +240,26 @@ export class Renderer {
     ctx.closePath();
     ctx.fill();
 
-    // Helper: filled rect (building)
+    // Helper: filled rect (building) — shifted right by 350px to center in view
+    const S = 350; // shift offset
     const building = (x: number, w: number, h: number) => {
-      ctx.fillRect(x, ch - 30 - h, w, h + 30);
+      ctx.fillRect(x + S, ch - 30 - h, w, h + 30);
     };
 
     ctx.fillStyle = FILL;
 
     // ── Generic downtown cluster (left) ────────────────────────────
-    building(200, 30, 50);
-    building(235, 25, 65);
-    building(265, 35, 45);
-    building(305, 20, 70);
-    building(330, 28, 55);
+    building(200, 30, 60);
+    building(235, 25, 80);
+    building(265, 35, 55);
+    building(305, 20, 85);
+    building(330, 28, 65);
 
-    // ── Transamerica Pyramid (x ≈ 400) ─────────────────────────────
+    // ── Transamerica Pyramid (x ≈ 400 + S) ─────────────────────────
     ctx.beginPath();
-    ctx.moveTo(385, ch - 30);
-    ctx.lineTo(400, ch - 30 - 130);  // pointed top
-    ctx.lineTo(415, ch - 30);
+    ctx.moveTo(385 + S, ch - 30);
+    ctx.lineTo(400 + S, ch - 30 - 150);  // pointed top — taller
+    ctx.lineTo(415 + S, ch - 30);
     ctx.closePath();
     ctx.fill();
 
@@ -269,12 +270,12 @@ export class Renderer {
     building(520, 22, 55);
     building(545, 30, 40);
 
-    // ── Salesforce Tower (x ≈ 600, tallest) ────────────────────────
+    // ── Salesforce Tower (x ≈ 600 + S, tallest) ────────────────────
     // Rounded rectangle approximation
     ctx.beginPath();
-    const stX = 590;
+    const stX = 590 + S;
     const stW = 35;
-    const stH = 150;
+    const stH = 175;
     const stTop = ch - 30 - stH;
     const stR = 10; // corner radius
     ctx.moveTo(stX, ch - 30);
@@ -296,21 +297,19 @@ export class Renderer {
     building(835, 25, 50);
     building(865, 30, 35);
 
-    // ── Bay Bridge (x ≈ 850–1250) — prominent suspension bridge ────
+    // ── Bay Bridge (shifted by S) — prominent suspension bridge ────
+    const bS = S; // bridge shift
     const bridgeY = ch - 30;
     const deckY = bridgeY - 25;
 
     // Deck — thick and wide
-    ctx.fillRect(850, deckY, 400, 8);
+    ctx.fillRect(850 + bS, deckY, 400, 8);
 
     // Two tall towers with tapered tops
-    for (const tx of [920, 1180]) {
-      // Tower legs (two pillars per tower)
+    for (const tx of [920 + bS, 1180 + bS]) {
       ctx.fillRect(tx - 6, deckY - 80, 5, 80);
       ctx.fillRect(tx + 1, deckY - 80, 5, 80);
-      // Tower cap
       ctx.fillRect(tx - 8, deckY - 82, 16, 5);
-      // Cross-braces
       ctx.fillRect(tx - 5, deckY - 55, 10, 3);
       ctx.fillRect(tx - 5, deckY - 35, 10, 3);
     }
@@ -318,39 +317,37 @@ export class Renderer {
     // Suspension cables — parabolic curves from tower to tower
     ctx.lineWidth = 2;
     ctx.strokeStyle = FILL;
-    // Main span cables (tower 1 to tower 2)
+    const t1x = 924 + bS;
+    const t2x = 1180 + bS;
     for (const cableY of [-78, -75]) {
       ctx.beginPath();
-      ctx.moveTo(924, deckY + cableY);
-      for (let cx = 924; cx <= 1180; cx += 4) {
-        const t = (cx - 924) / (1180 - 924);
-        const sag = 45 * 4 * t * (1 - t); // parabola
+      ctx.moveTo(t1x, deckY + cableY);
+      for (let cx = t1x; cx <= t2x; cx += 4) {
+        const t = (cx - t1x) / (t2x - t1x);
+        const sag = 45 * 4 * t * (1 - t);
         ctx.lineTo(cx, deckY + cableY + sag);
       }
       ctx.stroke();
     }
-    // Side span cables (left approach)
+    // Side span cables
     ctx.beginPath();
-    ctx.moveTo(850, deckY - 10);
-    for (let cx = 850; cx <= 924; cx += 4) {
-      const t = (cx - 850) / (924 - 850);
-      const sag = -68 * t; // rise to tower top
-      ctx.lineTo(cx, deckY - 10 + sag);
+    ctx.moveTo(850 + bS, deckY - 10);
+    for (let cx = 850 + bS; cx <= t1x; cx += 4) {
+      const t = (cx - 850 - bS) / (t1x - 850 - bS);
+      ctx.lineTo(cx, deckY - 10 - 68 * t);
     }
     ctx.stroke();
-    // Side span cables (right approach)
     ctx.beginPath();
-    ctx.moveTo(1250, deckY - 10);
-    for (let cx = 1250; cx >= 1180; cx -= 4) {
-      const t = (1250 - cx) / (1250 - 1180);
-      const sag = -68 * t;
-      ctx.lineTo(cx, deckY - 10 + sag);
+    ctx.moveTo(1250 + bS, deckY - 10);
+    for (let cx = 1250 + bS; cx >= t2x; cx -= 4) {
+      const t = (1250 + bS - cx) / (1250 + bS - t2x);
+      ctx.lineTo(cx, deckY - 10 - 68 * t);
     }
     ctx.stroke();
 
-    // Vertical suspender cables from main span
-    for (let cx = 940; cx <= 1170; cx += 16) {
-      const t = (cx - 924) / (1180 - 924);
+    // Vertical suspender cables
+    for (let cx = t1x + 16; cx <= t2x - 10; cx += 16) {
+      const t = (cx - t1x) / (t2x - t1x);
       const cableBottom = deckY - 75 + 45 * 4 * t * (1 - t);
       ctx.fillRect(cx, cableBottom, 1, deckY - cableBottom);
     }
@@ -361,10 +358,10 @@ export class Renderer {
     building(1320, 30, 35);
     building(1355, 22, 45);
 
-    // ── Sutro Tower (x ≈ 1400) ─────────────────────────────────────
+    // ── Sutro Tower (x ≈ 1400 + S) ─────────────────────────────────
     // Three prongs
     const sutroBase = ch - 30 - 80;
-    const sutroX = 1400;
+    const sutroX = 1400 + S;
     ctx.fillRect(sutroX + 12, sutroBase - 50, 4, 50); // center prong (tallest)
     ctx.fillRect(sutroX, sutroBase - 30, 4, 30);       // left prong
     ctx.fillRect(sutroX + 24, sutroBase - 30, 4, 30);  // right prong
@@ -385,10 +382,15 @@ export class Renderer {
     building(1500, 40, 20);
     building(1560, 35, 25);
 
-    // ── Haze gradient at base ──────────────────────────────────────
-    const haze = ctx.createLinearGradient(0, ch, 0, ch - 40);
-    haze.addColorStop(0, 'rgba(10, 15, 30, 0)');
-    haze.addColorStop(1, 'rgba(10, 15, 30, 0)');
+    // ── Atmospheric fog overlay on buildings ─────────────────────────
+    // Semi-transparent warm haze rising from the base, softening the skyline
+    const fogGrad = ctx.createLinearGradient(0, ch, 0, ch - 180);
+    fogGrad.addColorStop(0, 'rgba(180, 130, 90, 0.6)');
+    fogGrad.addColorStop(0.4, 'rgba(180, 130, 90, 0.25)');
+    fogGrad.addColorStop(1, 'rgba(180, 130, 90, 0)');
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, 0, cw, ch);
+
     // Clear the bottom strip to create fade-to-transparent at base
     ctx.globalCompositeOperation = 'destination-out';
     const fadeGrad = ctx.createLinearGradient(0, ch, 0, ch - 25);
