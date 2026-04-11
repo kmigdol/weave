@@ -256,12 +256,39 @@ export class Renderer {
     building(330, 28, 65);
 
     // ── Transamerica Pyramid (x ≈ 400 + S) ─────────────────────────
+    // Wide base tapering to a narrow spire with "wing" elevator shafts
+    const tpCx = 400 + S;
+    const tpBase = ch - 30;
+    const tpH = 160;
     ctx.beginPath();
-    ctx.moveTo(385 + S, ch - 30);
-    ctx.lineTo(400 + S, ch - 30 - 150);  // pointed top — taller
-    ctx.lineTo(415 + S, ch - 30);
+    // Left base
+    ctx.moveTo(tpCx - 22, tpBase);
+    // Left wing (elevator shaft) — slight bump partway up
+    ctx.lineTo(tpCx - 18, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx - 12, tpBase - tpH * 0.35);
+    // Taper to spire
+    ctx.lineTo(tpCx - 4, tpBase - tpH * 0.8);
+    // Narrow spire top
+    ctx.lineTo(tpCx, tpBase - tpH);
+    // Right side mirrors
+    ctx.lineTo(tpCx + 4, tpBase - tpH * 0.8);
+    ctx.lineTo(tpCx + 12, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx + 18, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx + 22, tpBase);
     ctx.closePath();
     ctx.fill();
+    // Horizontal floor lines for texture
+    ctx.strokeStyle = '#141d30';
+    ctx.lineWidth = 1;
+    for (let fy = tpBase - 10; fy > tpBase - tpH * 0.75; fy -= 8) {
+      const frac = (tpBase - fy) / tpH;
+      const hw = 22 * (1 - frac * 1.1);
+      if (hw < 2) break;
+      ctx.beginPath();
+      ctx.moveTo(tpCx - hw, fy);
+      ctx.lineTo(tpCx + hw, fy);
+      ctx.stroke();
+    }
 
     // ── Generic buildings around Transamerica ──────────────────────
     building(420, 30, 60);
