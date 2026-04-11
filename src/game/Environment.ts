@@ -170,8 +170,8 @@ export class Environment {
       });
       const plane = new Mesh(planeGeo, planeMat);
       plane.position.set(0, 7, 0);
-      // Face toward the road (perpendicular to road edge, angled slightly toward player)
-      plane.rotation.y = side > 0 ? -Math.PI / 2 + 0.3 : Math.PI / 2 - 0.3;
+      // Angle slightly toward road
+      plane.rotation.y = side > 0 ? -0.15 : 0.15;
       group.add(plane);
 
       group.position.set(x, 0, WRAP_BEHIND - i * BILLBOARD_SPACING);
