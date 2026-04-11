@@ -25,8 +25,8 @@ const TREE_CLUSTER_SPACING = 100;
 const GANTRY_SPACING = 400;
 
 const BILLBOARD_X_OFFSET = 15;
-const TREE_X_MIN = 20;
-const TREE_X_MAX = 28;
+const TREE_X_MIN = 28;
+const TREE_X_MAX = 38;
 const SHRUB_SPACING = 30;
 const SHRUB_X_MIN = 13;
 const SHRUB_X_MAX = 35;
