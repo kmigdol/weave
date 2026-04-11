@@ -302,7 +302,7 @@ export class Renderer {
     ctx.beginPath();
     const stCx = 607 + S;
     const stBaseHW = 16;
-    const stTopHW = 13;   // only slightly narrower at top
+    const stTopHW = 10;   // noticeable taper toward top
     const stH = 185;
     const stBase = ch - 30;
     const stTop = stBase - stH;
