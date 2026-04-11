@@ -96,7 +96,7 @@ export class Environment {
   // ── Public API ──────────────────────────────────────────────────────
 
   update(distanceDelta: number): void {
-    this.scrollAndWrap(this.billboards, distanceDelta, BILLBOARD_SPACING);
+    this.scrollAndWrapBillboards(distanceDelta);
     this.scrollAndWrap(this.frewaySigns, distanceDelta, SIGN_SPACING);
     this.scrollAndWrap(this.palmTreeClusters, distanceDelta, TREE_CLUSTER_SPACING);
     this.scrollAndWrap(this.gantries, distanceDelta, GANTRY_SPACING);
@@ -155,6 +155,29 @@ export class Environment {
         const overshoot = g.position.z - WRAP_BEHIND;
         const wraps = Math.ceil(overshoot / totalSpan);
         g.position.z -= wraps * totalSpan;
+      }
+    }
+  }
+
+  /** Scroll billboards and assign a new random texture when one wraps around. */
+  private scrollAndWrapBillboards(delta: number): void {
+    const totalSpan = Math.ceil(ROAD_LENGTH / BILLBOARD_SPACING) * BILLBOARD_SPACING;
+    for (const g of this.billboards) {
+      g.position.z += delta;
+      if (g.position.z > WRAP_BEHIND) {
+        const overshoot = g.position.z - WRAP_BEHIND;
+        const wraps = Math.ceil(overshoot / totalSpan);
+        g.position.z -= wraps * totalSpan;
+
+        // Assign a new random billboard texture
+        const signPlane = g.children.find(
+          (c) => (c as Mesh).material && 'map' in (c as Mesh).material,
+        ) as Mesh | undefined;
+        if (signPlane) {
+          const mat = signPlane.material as MeshBasicMaterial;
+          mat.map = this.textures[Math.floor(Math.random() * this.textures.length)];
+          mat.needsUpdate = true;
+        }
       }
     }
   }
