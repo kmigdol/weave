@@ -31,7 +31,7 @@ const SHRUB_SPACING = 30;
 const SHRUB_X_MIN = 13;
 const SHRUB_X_MAX = 35;
 const POLE_SPACING = 150;
-const POLE_X_OFFSET = 18;
+const POLE_X_OFFSET = 32;
 
 // ── Billboard texture pool ──────────────────────────────────────────
 
