@@ -298,21 +298,22 @@ export class Renderer {
     building(545, 30, 40);
 
     // ── Salesforce Tower (x ≈ 600 + S, tallest) ────────────────────
-    // Smooth subtle taper from base to rounded top — no hard transition
+    // Gentle taper with flat rounded top — like the real Salesforce Tower
     ctx.beginPath();
     const stCx = 607 + S;
-    const stBaseHW = 16;  // half-width at base
+    const stBaseHW = 16;
+    const stTopHW = 13;   // only slightly narrower at top
     const stH = 185;
     const stBase = ch - 30;
     const stTop = stBase - stH;
-    // Draw left edge as a smooth curve from base width to narrow top
+    // Left edge — gentle inward curve
     ctx.moveTo(stCx - stBaseHW, stBase);
-    ctx.quadraticCurveTo(stCx - stBaseHW, stTop + stH * 0.4, stCx - 6, stTop + 15);
-    // Rounded bullet top
-    ctx.quadraticCurveTo(stCx - 5, stTop + 2, stCx, stTop);
-    ctx.quadraticCurveTo(stCx + 5, stTop + 2, stCx + 6, stTop + 15);
-    // Right edge mirrors
-    ctx.quadraticCurveTo(stCx + stBaseHW, stTop + stH * 0.4, stCx + stBaseHW, stBase);
+    ctx.quadraticCurveTo(stCx - stBaseHW, stTop + stH * 0.3, stCx - stTopHW, stTop + 10);
+    // Flat rounded top
+    ctx.arcTo(stCx - stTopHW, stTop, stCx, stTop, 8);
+    ctx.arcTo(stCx + stTopHW, stTop, stCx + stTopHW, stTop + 10, 8);
+    // Right edge
+    ctx.quadraticCurveTo(stCx + stBaseHW, stTop + stH * 0.3, stCx + stBaseHW, stBase);
     ctx.closePath();
     ctx.fill();
 
