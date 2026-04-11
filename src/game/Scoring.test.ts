@@ -213,12 +213,12 @@ describe('slipstream / BOOST', () => {
   it('slipstream accumulates over ticks', () => {
     let s = initScoring();
 
-    ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 1 }] }));
-    expect(s.slipstreamTimer).toBeCloseTo(0.3);
+    ({ state: s } = tick(s, 0.15, { slipstreams: [{ id: 1 }] }));
+    expect(s.slipstreamTimer).toBeCloseTo(0.15);
     expect(s.slipstreamCarId).toBe(1);
 
-    ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 1 }] }));
-    expect(s.slipstreamTimer).toBeCloseTo(0.6);
+    ({ state: s } = tick(s, 0.15, { slipstreams: [{ id: 1 }] }));
+    expect(s.slipstreamTimer).toBeCloseTo(0.3);
   });
 
   it('triggers BOOST at SLIPSTREAM_CHARGE_TIME', () => {
@@ -248,8 +248,8 @@ describe('slipstream / BOOST', () => {
   it('slipstream resets when leaving zone (no slipstreams)', () => {
     let s = initScoring();
 
-    ({ state: s } = tick(s, 0.5, { slipstreams: [{ id: 1 }] }));
-    expect(s.slipstreamTimer).toBeCloseTo(0.5);
+    ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 1 }] }));
+    expect(s.slipstreamTimer).toBeCloseTo(0.3);
 
     // Leave slipstream zone
     ({ state: s } = tick(s, 0.1));
@@ -260,8 +260,8 @@ describe('slipstream / BOOST', () => {
   it('slipstream resets on car change', () => {
     let s = initScoring();
 
-    ({ state: s } = tick(s, 0.5, { slipstreams: [{ id: 1 }] }));
-    expect(s.slipstreamTimer).toBeCloseTo(0.5);
+    ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 1 }] }));
+    expect(s.slipstreamTimer).toBeCloseTo(0.3);
 
     // Switch to a different car
     ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 2 }] }));
@@ -378,7 +378,7 @@ describe('combined scenarios', () => {
     let s = initScoring();
 
     // Car 1 is in both near-miss and slipstream zones
-    ({ state: s } = tick(s, 0.5, {
+    ({ state: s } = tick(s, 0.3, {
       nearMisses: [{ id: 1 }],
       slipstreams: [{ id: 1 }],
     }));
@@ -386,7 +386,7 @@ describe('combined scenarios', () => {
     // Near-miss should have scored
     expect(s.combo).toBe(1);
     // Slipstream should be accumulating
-    expect(s.slipstreamTimer).toBeCloseTo(0.5);
+    expect(s.slipstreamTimer).toBeCloseTo(0.3);
     expect(s.slipstreamCarId).toBe(1);
   });
 
