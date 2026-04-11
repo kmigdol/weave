@@ -81,9 +81,9 @@ export const COLLISION_ACTIVE_RANGE = 50;
 
 // ── Scoring / Combo / Boost ────────────────────────────────────────
 /** Speed increase per combo level on near-miss (fraction of base speed). */
-export const NEAR_MISS_BURST_PER_COMBO = 0.10;
+export const NEAR_MISS_BURST_PER_COMBO = 0.15;
 /** Duration of a near-miss speed burst (seconds). */
-export const NEAR_MISS_BURST_DURATION = 0.5;
+export const NEAR_MISS_BURST_DURATION = 1.0;
 /** Seconds before combo decays back to 0. */
 export const COMBO_DECAY_TIME = 1.5;
 /** Seconds spent in slipstream zone to trigger BOOST. */
