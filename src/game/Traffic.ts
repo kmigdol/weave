@@ -1,5 +1,6 @@
-import { Mesh, BoxGeometry, MeshStandardMaterial, Scene } from 'three';
+import { Mesh, BoxGeometry, MeshStandardMaterial, Scene, Object3D, Box3 } from 'three';
 import { NUM_LANES, laneToX } from './Player';
+import { cloneCar, type AssetManifest } from '../render/Assets';
 import {
   TRAFFIC_SPAWN_DISTANCE,
   TRAFFIC_DESPAWN_DISTANCE,
@@ -38,27 +39,38 @@ export interface TrafficCar {
   speed: number; // effective speed this tick (may be clamped by following)
   z: number; // world-space z (negative = ahead)
   type: 'normal' | 'semi' | 'swerving';
-  mesh: Mesh;
+  mesh: Object3D; // Mesh (box fallback) or Group (GLB model)
   swayPhase: number; // only meaningful for swerving type
   x: number; // current world-x including sway offset
   meshY: number; // cached y position (half height)
 }
 
+/** Asset keys eligible for each traffic type. */
+const NORMAL_ASSET_KEYS: (keyof AssetManifest)[] = ['sedanSports', 'suv', 'hatchbackSports', 'police'];
+const SEMI_ASSET_KEYS: (keyof AssetManifest)[] = ['truck', 'delivery', 'van'];
+const SWERVING_ASSET_KEY: keyof AssetManifest = 'taxi';
+
 export class TrafficManager {
   readonly cars: TrafficCar[] = [];
-  private normalPool: Mesh[] = [];
-  private semiPool: Mesh[] = [];
-  private swervingPool: Mesh[] = [];
+  private normalPool: Object3D[] = [];
+  private semiPool: Object3D[] = [];
+  private swervingPool: Object3D[] = [];
   private spawnTimer: number;
   private scene: Scene;
   private rng: () => number;
   private nextId = 1;
   private _despawnedIds: number[] = [];
+  private assets: AssetManifest | null = null;
 
   constructor(scene: Scene, rng?: () => number) {
     this.scene = scene;
     this.rng = rng ?? Math.random;
     this.spawnTimer = TRAFFIC_BASE_SPAWN_INTERVAL;
+  }
+
+  /** Supply loaded assets so traffic spawns use GLB models. */
+  setAssets(assets: AssetManifest): void {
+    this.assets = assets;
   }
 
   /** Call every simulation tick. */
@@ -268,12 +280,16 @@ export class TrafficManager {
     // Create or reuse mesh
     const mesh = this.acquireMesh(type);
 
-    // Determine mesh y (half the box height)
+    // Determine mesh y so the bottom of the car sits on the road (y=0).
+    // For GLB Groups, compute from bounding box; for box fallbacks, use half-height.
     let meshY: number;
-    if (type === 'semi') {
-      meshY = SEMI_SIZE.h / 2;
+    if (mesh instanceof Mesh) {
+      // Box fallback
+      meshY = type === 'semi' ? SEMI_SIZE.h / 2 : NORMAL_SIZE.h / 2;
     } else {
-      meshY = NORMAL_SIZE.h / 2;
+      // GLB model — lift so bottom sits at y=0
+      const box = new Box3().setFromObject(mesh);
+      meshY = -box.min.y;
     }
 
     const x = laneToX(lane);
@@ -296,20 +312,47 @@ export class TrafficManager {
     return true;
   }
 
-  private poolFor(type: 'normal' | 'semi' | 'swerving'): Mesh[] {
+  private poolFor(type: 'normal' | 'semi' | 'swerving'): Object3D[] {
     if (type === 'semi') return this.semiPool;
     if (type === 'swerving') return this.swervingPool;
     return this.normalPool;
   }
 
-  private acquireMesh(type: 'normal' | 'semi' | 'swerving'): Mesh {
+  /**
+   * Pick a random GLB template for the given traffic type.
+   * Returns null if assets aren't loaded or all candidates are null.
+   */
+  private pickTemplate(type: 'normal' | 'semi' | 'swerving'): import('three').Group | null {
+    if (!this.assets) return null;
+
+    if (type === 'swerving') {
+      return this.assets[SWERVING_ASSET_KEY] ?? null;
+    }
+
+    const keys = type === 'semi' ? SEMI_ASSET_KEYS : NORMAL_ASSET_KEYS;
+    const available = keys.filter((k) => this.assets![k] != null);
+    if (available.length === 0) return null;
+
+    const key = available[Math.floor(this.rng() * available.length)];
+    return this.assets[key] ?? null;
+  }
+
+  private acquireMesh(type: 'normal' | 'semi' | 'swerving'): Object3D {
     // Try to reuse from the correct type-specific pool
     const pool = this.poolFor(type);
     if (pool.length > 0) {
       return pool.pop()!;
     }
 
-    // Create new mesh
+    // Try GLB model first
+    const template = this.pickTemplate(type);
+    if (template) {
+      const group = cloneCar(template);
+      this.scene.add(group);
+      return group;
+    }
+
+    // Fallback: procedural box geometry
     let geometry: BoxGeometry;
     let material: MeshStandardMaterial;
 

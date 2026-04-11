@@ -1,7 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { startRun, tickRun, crashRun } from './GameState';
+import { startRun, tickRun, crashRun, startOnRamp, tickOnRamp } from './GameState';
+import { ON_RAMP_DURATION } from './constants';
 
 describe('GameState', () => {
+  describe('startOnRamp', () => {
+    it('returns phase onRamp with elapsedSeconds 0', () => {
+      const state = startOnRamp();
+      expect(state).toEqual({
+        phase: 'onRamp',
+        elapsedSeconds: 0,
+      });
+    });
+  });
+
+  describe('tickOnRamp', () => {
+    it('advances elapsedSeconds', () => {
+      const state = startOnRamp();
+      const next = tickOnRamp(state, 0.5);
+      expect(next.phase).toBe('onRamp');
+      expect((next as { elapsedSeconds: number }).elapsedSeconds).toBeCloseTo(0.5, 10);
+    });
+
+    it('stays as OnRampState when elapsed < ON_RAMP_DURATION', () => {
+      const state = startOnRamp();
+      const next = tickOnRamp(state, ON_RAMP_DURATION - 0.1);
+      expect(next.phase).toBe('onRamp');
+    });
+
+    it('transitions to RunningState when elapsed >= ON_RAMP_DURATION', () => {
+      const state = startOnRamp();
+      const next = tickOnRamp(state, ON_RAMP_DURATION);
+      expect(next.phase).toBe('running');
+      expect(next).toEqual({
+        phase: 'running',
+        elapsedSeconds: 0,
+        distanceMeters: 0,
+      });
+    });
+
+    it('transitions to RunningState when elapsed exceeds ON_RAMP_DURATION', () => {
+      let state = startOnRamp();
+      // Tick partially
+      const partial = tickOnRamp(state, ON_RAMP_DURATION - 0.5);
+      expect(partial.phase).toBe('onRamp');
+      // Tick past the threshold
+      const final = tickOnRamp(partial as { phase: 'onRamp'; elapsedSeconds: number }, 1.0);
+      expect(final.phase).toBe('running');
+    });
+  });
+
   describe('startRun', () => {
     it('returns a running state with elapsedSeconds=0 and distanceMeters=0', () => {
       const state = startRun();

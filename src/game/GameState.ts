@@ -1,3 +1,10 @@
+import { ON_RAMP_DURATION } from './constants';
+
+export type OnRampState = {
+  phase: 'onRamp';
+  elapsedSeconds: number;
+};
+
 export type RunningState = {
   phase: 'running';
   elapsedSeconds: number;
@@ -11,7 +18,19 @@ export type GameOverState = {
   bestCombo: number;
 };
 
-export type GameState = RunningState | GameOverState;
+export type GameState = OnRampState | RunningState | GameOverState;
+
+export function startOnRamp(): OnRampState {
+  return { phase: 'onRamp', elapsedSeconds: 0 };
+}
+
+export function tickOnRamp(state: OnRampState, dtSeconds: number): OnRampState | RunningState {
+  const elapsed = state.elapsedSeconds + dtSeconds;
+  if (elapsed >= ON_RAMP_DURATION) {
+    return startRun();
+  }
+  return { phase: 'onRamp', elapsedSeconds: elapsed };
+}
 
 export function startRun(): RunningState {
   return { phase: 'running', elapsedSeconds: 0, distanceMeters: 0 };
