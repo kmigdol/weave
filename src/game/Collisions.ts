@@ -2,7 +2,8 @@ import {
   HITBOX_NORMAL,
   HITBOX_SEMI,
   HITBOX_PLAYER,
-  NEAR_MISS_PADDING,
+  NEAR_MISS_PADDING_X,
+  NEAR_MISS_PADDING_Z,
   SLIPSTREAM_LENGTH,
   COLLISION_ACTIVE_RANGE,
   PLAYER_Z,
@@ -25,6 +26,7 @@ export interface CollisionBoxes {
 
 /** Minimal car shape needed by collisions (doesn't depend on Traffic.ts). */
 export interface CollidableCar {
+  id: number;
   x: number;
   z: number;
   type: 'normal' | 'semi' | 'swerving';
@@ -67,10 +69,10 @@ export function computeBoxes(car: CollidableCar): CollisionBoxes {
   };
 
   const nearMissZone: AABB = {
-    minX: hitBox.minX - NEAR_MISS_PADDING,
-    maxX: hitBox.maxX + NEAR_MISS_PADDING,
-    minZ: hitBox.minZ,
-    maxZ: hitBox.maxZ,
+    minX: hitBox.minX - NEAR_MISS_PADDING_X,
+    maxX: hitBox.maxX + NEAR_MISS_PADDING_X,
+    minZ: hitBox.minZ - NEAR_MISS_PADDING_Z,
+    maxZ: hitBox.maxZ + NEAR_MISS_PADDING_Z,
   };
 
   const slipstreamZone: AABB = {

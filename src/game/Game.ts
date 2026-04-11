@@ -8,14 +8,16 @@ import { TrafficManager } from './Traffic';
 import { checkCollisions } from './Collisions';
 import { getSpeed } from './SpeedCurve';
 import { startRun, tickRun, crashRun, type GameState, type RunningState } from './GameState';
+import { initScoring, tickScoring, getSpeedMultiplier, resetScoring, type ScoringState } from './Scoring';
 import { GameOverOverlay } from '../ui/GameOverOverlay';
+import { HUD } from '../ui/HUD';
+import { BOOST_DURATION, SLIPSTREAM_CHARGE_TIME, NEAR_MISS_BURST_DURATION } from './constants';
 
 const TICK_SECONDS = 1 / 60;
 
 /**
  * Top-level game orchestrator. Owns the renderer, world, player, input,
- * traffic, collisions, and fixed-timestep loop. WEA-2 adds the core
- * gameplay loop: traffic spawning, collision detection, crash, and restart.
+ * traffic, collisions, scoring, HUD, and fixed-timestep loop.
  */
 export class Game {
   private readonly loop = new FixedTimestepLoop(TICK_SECONDS);
@@ -25,11 +27,14 @@ export class Game {
   private readonly input: Input;
   private readonly traffic: TrafficManager;
   private readonly overlay = new GameOverOverlay();
+  private readonly hud = new HUD();
   private readonly playerMesh: Mesh;
   private rafHandle = 0;
   private lastFrameTimeMs = 0;
   private totalSeconds = 0;
   private state: GameState;
+  private scoring: ScoringState;
+  private currentSpeed = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas);
@@ -61,10 +66,12 @@ export class Game {
     });
 
     this.state = startRun();
+    this.scoring = initScoring();
   }
 
   start(): void {
     this.input.attach();
+    this.hud.show();
     this.lastFrameTimeMs = performance.now();
     this.rafHandle = requestAnimationFrame(this.frame);
   }
@@ -72,6 +79,7 @@ export class Game {
   stop(): void {
     cancelAnimationFrame(this.rafHandle);
     this.input.detach();
+    this.hud.dispose();
     this.overlay.dispose();
     this.renderer.dispose();
   }
@@ -83,12 +91,16 @@ export class Game {
 
     // Clear all traffic
     this.traffic.reset();
+    this.traffic.clearDespawnedIds();
 
-    // Fresh game state
+    // Fresh game + scoring state
     this.state = startRun();
+    this.scoring = resetScoring();
+    this.currentSpeed = 0;
 
-    // Hide overlay
+    // Hide overlay, show HUD
     this.overlay.hide();
+    this.hud.show();
   }
 
   private readonly frame = (nowMs: number): void => {
@@ -107,6 +119,22 @@ export class Game {
       }
     }
 
+    // Update HUD every frame (not just on ticks)
+    if (this.state.phase === 'running') {
+      const running = this.state as RunningState;
+      const slipstreamProgress = this.scoring.slipstreamTimer / SLIPSTREAM_CHARGE_TIME;
+      this.hud.update(
+        running.distanceMeters,
+        this.scoring.combo,
+        this.scoring.boostTimer,
+        BOOST_DURATION,
+        slipstreamProgress,
+        this.currentSpeed,
+        this.scoring.burstTimer,
+        NEAR_MISS_BURST_DURATION,
+      );
+    }
+
     this.playerMesh.position.x = this.player.x;
     this.renderer.render(this.player.x, this.totalSeconds, this.loop.alpha());
   };
@@ -115,24 +143,57 @@ export class Game {
     if (this.state.phase !== 'running') return;
 
     const running = this.state as RunningState;
-    const speed = getSpeed(running.elapsedSeconds);
+    const baseSpeed = getSpeed(running.elapsedSeconds);
+
+    // Apply scoring speed multiplier
+    const effectiveSpeed = baseSpeed * getSpeedMultiplier(this.scoring);
+    this.currentSpeed = effectiveSpeed;
 
     // Update player, world, traffic
     this.player.update(dtSeconds);
-    this.world.update(speed * dtSeconds);
-    this.traffic.update(speed, dtSeconds);
+    this.world.update(effectiveSpeed * dtSeconds);
+    this.traffic.update(effectiveSpeed, dtSeconds);
     this.renderer.tick(this.player.x, dtSeconds);
 
     // Check collisions
     const result = checkCollisions(this.player.x, this.traffic.collidables);
+
     if (result.hits.length > 0) {
       // Crash!
-      this.state = crashRun(running);
-      this.overlay.show(this.state.distanceMeters, this.state.durationSeconds);
+      this.state = crashRun(running, this.scoring.bestCombo);
+      this.renderer.shakeCrash();
+      this.hud.hide();
+      this.overlay.show(
+        this.state.distanceMeters,
+        this.state.durationSeconds,
+        this.state.bestCombo,
+      );
       return;
     }
 
-    // Advance game state
-    this.state = tickRun(running, dtSeconds, speed);
+    // Update scoring with collision results
+    const despawnedIds = this.traffic.despawnedIds;
+    const { state: newScoring, events } = tickScoring(
+      this.scoring,
+      dtSeconds,
+      result.nearMisses,
+      result.hits,
+      result.slipstreams,
+      despawnedIds,
+    );
+    this.traffic.clearDespawnedIds();
+    this.scoring = newScoring;
+
+    // React to scoring events
+    if (events.nearMiss) {
+      this.renderer.shakeNearMiss();
+      this.hud.flashNearMiss(this.scoring.combo);
+    }
+
+    // Update renderer boost state for FOV widen
+    this.renderer.setBoostActive(this.scoring.boostTimer > 0);
+
+    // Advance game state with effective speed
+    this.state = tickRun(running, dtSeconds, effectiveSpeed);
   }
 }

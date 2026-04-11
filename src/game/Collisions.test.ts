@@ -9,15 +9,17 @@ import {
   HITBOX_NORMAL,
   HITBOX_SEMI,
   HITBOX_PLAYER,
-  NEAR_MISS_PADDING,
+  NEAR_MISS_PADDING_X,
+  NEAR_MISS_PADDING_Z,
   SLIPSTREAM_LENGTH,
   COLLISION_ACTIVE_RANGE,
   PLAYER_Z,
 } from './constants';
 
 // ── Helpers ───────────────────────────────────────────────────────────
+let nextTestId = 1;
 function makeCar(overrides: Partial<CollidableCar> = {}): CollidableCar {
-  return { x: 0, z: -10, type: 'normal', ...overrides };
+  return { id: nextTestId++, x: 0, z: -10, type: 'normal', ...overrides };
 }
 
 // ── computeBoxes ──────────────────────────────────────────────────────
@@ -59,15 +61,14 @@ describe('computeBoxes', () => {
     expect(swervingWidth).toBeCloseTo(normalWidth);
   });
 
-  it('near-miss zone is wider than hit box by NEAR_MISS_PADDING on each side', () => {
+  it('near-miss zone extends by NEAR_MISS_PADDING_X laterally and NEAR_MISS_PADDING_Z longitudinally', () => {
     const car = makeCar({ x: 3, z: -15 });
     const { hitBox, nearMissZone } = computeBoxes(car);
 
-    expect(nearMissZone.minX).toBeCloseTo(hitBox.minX - NEAR_MISS_PADDING);
-    expect(nearMissZone.maxX).toBeCloseTo(hitBox.maxX + NEAR_MISS_PADDING);
-    // Z extent should match hit box (padding is lateral only)
-    expect(nearMissZone.minZ).toBeCloseTo(hitBox.minZ);
-    expect(nearMissZone.maxZ).toBeCloseTo(hitBox.maxZ);
+    expect(nearMissZone.minX).toBeCloseTo(hitBox.minX - NEAR_MISS_PADDING_X);
+    expect(nearMissZone.maxX).toBeCloseTo(hitBox.maxX + NEAR_MISS_PADDING_X);
+    expect(nearMissZone.minZ).toBeCloseTo(hitBox.minZ - NEAR_MISS_PADDING_Z);
+    expect(nearMissZone.maxZ).toBeCloseTo(hitBox.maxZ + NEAR_MISS_PADDING_Z);
   });
 
   it('slipstream extends behind the car (positive z direction)', () => {
@@ -127,7 +128,7 @@ describe('checkCollisions', () => {
     // but NOT the hit box. Player at x=0, car offset by enough to
     // clear hit boxes but land in the near-miss padding.
     const gap = HITBOX_PLAYER[0] + HITBOX_NORMAL[0]; // just touching
-    const nearMissX = gap + NEAR_MISS_PADDING * 0.5; // inside near-miss zone
+    const nearMissX = gap + NEAR_MISS_PADDING_X * 0.5; // inside near-miss zone
     const car = makeCar({ x: nearMissX, z: PLAYER_Z });
     const result = checkCollisions(0, [car]);
 

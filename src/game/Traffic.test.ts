@@ -358,6 +358,85 @@ describe('TrafficManager', () => {
     });
   });
 
+  describe('car IDs', () => {
+    it('spawned cars have unique incrementing IDs', () => {
+      // Each normal car spawn consumes 4 rng values: lane, type, speed var, color.
+      // Use sequence RNG so spawns land in different lanes to avoid gap conflicts.
+      // MAX_LANES_AT_SPAWN_DEPTH=2, so only 2 cars can spawn near the same z.
+      const rng = sequenceRng([
+        0.3, 0.5, 0.5, 0.5, // spawn 1: lane=1, type=normal, speed var, color
+        0.7, 0.5, 0.5, 0.5, // spawn 2: lane=3, type=normal, speed var, color
+      ]);
+      const tm = new TrafficManager(scene, rng);
+      const playerSpeed = 50;
+
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+
+      expect(tm.cars.length).toBe(2);
+      expect(tm.cars[0].id).toBe(1);
+      expect(tm.cars[1].id).toBe(2);
+      // IDs are unique and incrementing
+      expect(tm.cars[0].id).not.toBe(tm.cars[1].id);
+    });
+
+    it('despawnedIds contains IDs of despawned cars', () => {
+      const tm = new TrafficManager(scene, fixedRng(0.5));
+      const playerSpeed = 50;
+
+      // Spawn a car
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+      expect(tm.cars.length).toBe(1);
+      const carId = tm.cars[0].id;
+
+      // Force despawn by advancing time far enough
+      const car = tm.cars[0];
+      const relativeSpeed = playerSpeed - car.speed;
+      const timeToTravel = (TRAFFIC_DESPAWN_DISTANCE - car.z + 1) / relativeSpeed;
+      tm.update(playerSpeed, timeToTravel);
+
+      expect(tm.despawnedIds).toContain(carId);
+    });
+
+    it('clearDespawnedIds empties the array', () => {
+      const tm = new TrafficManager(scene, fixedRng(0.5));
+      const playerSpeed = 50;
+
+      // Spawn and despawn a car
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+      const car = tm.cars[0];
+      const relativeSpeed = playerSpeed - car.speed;
+      const timeToTravel = (TRAFFIC_DESPAWN_DISTANCE - car.z + 1) / relativeSpeed;
+      tm.update(playerSpeed, timeToTravel);
+
+      expect(tm.despawnedIds.length).toBeGreaterThan(0);
+      tm.clearDespawnedIds();
+      expect(tm.despawnedIds.length).toBe(0);
+    });
+
+    it('reset reports all car IDs as despawned', () => {
+      // Use sequence RNG so spawns land in different lanes
+      const rng = sequenceRng([
+        0.3, 0.5, 0.5, // spawn 1: lane=1
+        0.7, 0.5, 0.5, // spawn 2: lane=3
+      ]);
+      const tm = new TrafficManager(scene, rng);
+      const playerSpeed = 50;
+
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+      tm.update(playerSpeed, TRAFFIC_BASE_SPAWN_INTERVAL);
+      expect(tm.cars.length).toBe(2);
+
+      const ids = tm.cars.map((c) => c.id);
+      tm.reset();
+
+      for (const id of ids) {
+        expect(tm.despawnedIds).toContain(id);
+      }
+      expect(tm.cars.length).toBe(0);
+    });
+  });
+
   describe('pool reuse', () => {
     it('reuses pooled mesh on subsequent spawn after despawn', () => {
       // With fixed rng=0.5, on the large despawn tick the timer expires and

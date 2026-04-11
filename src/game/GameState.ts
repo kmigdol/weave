@@ -8,6 +8,7 @@ export type GameOverState = {
   phase: 'gameOver';
   distanceMeters: number;
   durationSeconds: number;
+  bestCombo: number;
 };
 
 export type GameState = RunningState | GameOverState;
@@ -28,10 +29,11 @@ export function tickRun(
   };
 }
 
-export function crashRun(state: RunningState): GameOverState {
+export function crashRun(state: RunningState, bestCombo: number): GameOverState {
   return {
     phase: 'gameOver',
     distanceMeters: state.distanceMeters,
     durationSeconds: state.elapsedSeconds,
+    bestCombo,
   };
 }
