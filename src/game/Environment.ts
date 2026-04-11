@@ -24,8 +24,8 @@ const TREE_CLUSTER_SPACING = 100;
 const GANTRY_SPACING = 400;
 
 const BILLBOARD_X_OFFSET = 15;
-const TREE_X_MIN = 14;
-const TREE_X_MAX = 18;
+const TREE_X_MIN = 20;
+const TREE_X_MAX = 28;
 
 // ── Billboard texture pool ──────────────────────────────────────────
 
@@ -170,8 +170,8 @@ export class Environment {
       });
       const plane = new Mesh(planeGeo, planeMat);
       plane.position.set(0, 7, 0);
-      // Angle slightly toward road
-      plane.rotation.y = side > 0 ? -0.15 : 0.15;
+      // Face toward the road (perpendicular to road edge, angled slightly toward player)
+      plane.rotation.y = side > 0 ? -Math.PI / 2 + 0.3 : Math.PI / 2 - 0.3;
       group.add(plane);
 
       group.position.set(x, 0, WRAP_BEHIND - i * BILLBOARD_SPACING);

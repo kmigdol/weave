@@ -1,4 +1,4 @@
-import { Group, Box3, Vector3 } from 'three';
+import { Group, Box3, Vector3, Mesh, Material } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ── Car model dimensions (must match hitbox constants) ─────────────
@@ -24,26 +24,27 @@ const FILE_MAP: Record<keyof AssetManifest, string> = {
 
 // ── Types ──────────────────────────────────────────────────────────
 
-/** Manifest of all pre-loaded car models, keyed by logical name. */
+/** Manifest of all pre-loaded car models, keyed by logical name. Entries are null if loading failed. */
 export interface AssetManifest {
-  sedan: Group;
-  sedanSports: Group;
-  truck: Group;
-  van: Group;
-  taxi: Group;
-  suv: Group;
-  delivery: Group;
-  hatchbackSports: Group;
-  police: Group;
+  sedan: Group | null;
+  sedanSports: Group | null;
+  truck: Group | null;
+  van: Group | null;
+  taxi: Group | null;
+  suv: Group | null;
+  delivery: Group | null;
+  hatchbackSports: Group | null;
+  police: Group | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 /**
  * Scale `scene` uniformly so its z-extent (bounding-box depth) equals
- * `targetLength`.  This preserves the model's aspect ratio.
+ * `targetLength`, and rotate 180° around Y so the car faces -z
+ * (the direction of travel in our game). Kenney models face +z by default.
  */
-function scaleToLength(scene: Group, targetLength: number): void {
+function scaleAndOrient(scene: Group, targetLength: number): void {
   const box = new Box3().setFromObject(scene);
   const size = new Vector3();
   box.getSize(size);
@@ -52,6 +53,9 @@ function scaleToLength(scene: Group, targetLength: number): void {
   if (size.z === 0) return; // degenerate model — skip
   const scaleFactor = targetLength / size.z;
   scene.scale.multiplyScalar(scaleFactor);
+
+  // Rotate 180° so the car faces -z (toward the camera / direction of travel)
+  scene.rotation.y = Math.PI;
 }
 
 // ── Public API ─────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ export async function loadAssets(): Promise<AssetManifest> {
         scene.name = key;
 
         const targetLength = LARGE_CARS.has(key) ? LARGE_CAR_LENGTH : NORMAL_CAR_LENGTH;
-        scaleToLength(scene, targetLength);
+        scaleAndOrient(scene, targetLength);
 
         return { key, scene };
       } catch (err) {
@@ -85,18 +89,29 @@ export async function loadAssets(): Promise<AssetManifest> {
     }),
   );
 
-  const manifest = {} as Record<keyof AssetManifest, Group>;
+  const manifest = {} as AssetManifest;
   for (const { key, scene } of results) {
-    manifest[key] = scene as Group;
+    manifest[key] = scene;
   }
-  return manifest as AssetManifest;
+  return manifest;
 }
 
 /**
- * Clone a car template for placement in the scene.  The clone is a
- * deep copy of all meshes / materials so each instance can be
- * independently transformed.
+ * Clone a car template for placement in the scene. Clones geometry
+ * structure and deep-clones materials so mutations (e.g. emissive
+ * changes) don't bleed across instances.
  */
 export function cloneCar(template: Group): Group {
-  return template.clone();
+  const clone = template.clone();
+  clone.traverse((child) => {
+    if ((child as Mesh).isMesh) {
+      const mesh = child as Mesh;
+      if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map((m) => (m as Material).clone());
+      } else {
+        mesh.material = (mesh.material as Material).clone();
+      }
+    }
+  });
+  return clone;
 }

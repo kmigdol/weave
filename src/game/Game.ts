@@ -221,7 +221,9 @@ export class Game {
     const onRamp = this.state as OnRampState;
     const nextState = tickOnRamp(onRamp, dtSeconds);
 
-    const t = Math.min(onRamp.elapsedSeconds / ON_RAMP_DURATION, 1);
+    // Use new elapsed time so the animation completes smoothly on the transition frame
+    const newElapsed = Math.min(onRamp.elapsedSeconds + dtSeconds, ON_RAMP_DURATION);
+    const t = newElapsed / ON_RAMP_DURATION;
     // Smoothstep ease-in-out for position interpolation
     const tSmooth = t * t * (3 - 2 * t);
 
