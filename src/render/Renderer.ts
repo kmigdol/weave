@@ -7,6 +7,7 @@ import {
   HemisphereLight,
   FogExp2,
   SphereGeometry,
+  CylinderGeometry,
   ShaderMaterial,
   Mesh,
   BackSide,
@@ -14,7 +15,6 @@ import {
   SpriteMaterial,
   CanvasTexture,
   AdditiveBlending,
-  PlaneGeometry,
   MeshBasicMaterial,
   DoubleSide,
 } from 'three';
@@ -399,7 +399,12 @@ export class Renderer {
     ctx.globalCompositeOperation = 'source-over';
 
     const tex = new CanvasTexture(canvas);
-    const geo = new PlaneGeometry(1600, 100);
+    // Use a cylinder arc so the skyline wraps around the horizon
+    // instead of being a flat plane with visible edges
+    const radius = 750;
+    const height = 120;
+    const arc = Math.PI * 0.8; // ~144° wrap
+    const geo = new CylinderGeometry(radius, radius, height, 64, 1, true, Math.PI / 2 - arc / 2, arc);
     const mat = new MeshBasicMaterial({
       map: tex,
       transparent: true,
@@ -407,7 +412,7 @@ export class Renderer {
       side: DoubleSide,
     });
     const mesh = new Mesh(geo, mat);
-    mesh.position.set(0, 30, -700);
+    mesh.position.set(0, 30, 0); // centered on player
     return mesh;
   }
 

@@ -1,5 +1,6 @@
 import {
-  BoxGeometry, Mesh, MeshStandardMaterial, Object3D, Box3,
+  BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, Object3D, Box3,
+  PlaneGeometry, CanvasTexture, DoubleSide, Group,
 } from 'three';
 import { Renderer } from '../render/Renderer';
 import { Player, laneToX, NUM_LANES } from './Player';
@@ -170,6 +171,7 @@ export class Game {
 
     // Position player off-screen for on-ramp intro
     this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
+    this.removeHighwaySign();
 
     // Hide overlay, show HUD
     this.overlay.hide();
@@ -253,83 +255,97 @@ export class Game {
     // Do NOT update traffic during onRamp
     // Do NOT process input during onRamp (already gated by phase check)
 
-    // Show "101 NORTH" highway sign at t ≈ 1.5s
-    if (onRamp.elapsedSeconds < 1.5 && newElapsed >= 1.5) {
-      this.flashHighwaySign();
+    // Spawn highway sign at start of on-ramp if not already present
+    if (!this.highwaySign) {
+      this.spawnHighwaySign();
+    }
+
+    // Scroll the sign toward the player (same as world scroll)
+    if (this.highwaySign) {
+      this.highwaySign.position.z += speed * dtSeconds;
     }
 
     this.state = nextState;
 
-    // Transition to running: show "GO!" flash, reset player to rightmost lane
+    // Transition to running: show "GO!" flash, clean up on-ramp props
     if (nextState.phase === 'running') {
       this.player.targetLane = NUM_LANES - 1;
       this.player.x = laneToX(NUM_LANES - 1);
       this.playerMesh.position.x = this.player.x;
       this.playerMesh.position.z = 0;
+      this.removeHighwaySign();
       this.flashGo();
     }
   }
 
-  private flashHighwaySign(): void {
-    const sign = document.createElement('div');
-    Object.assign(sign.style, {
-      position: 'fixed',
-      right: '8%',
-      top: '25%',
-      background: '#006633',
-      border: '4px solid #ffffff',
-      borderRadius: '6px',
-      padding: '12px 28px',
-      fontFamily: 'monospace',
-      pointerEvents: 'none',
-      zIndex: '1000',
-      opacity: '1',
-      transition: 'transform 1.8s ease-in, opacity 0.8s ease-in 1.0s',
-    } satisfies Partial<CSSStyleDeclaration>);
+  private highwaySign: Group | null = null;
 
-    // Shield + route number
-    const route = document.createElement('div');
-    Object.assign(route.style, {
-      fontSize: '42px',
-      fontWeight: 'bold',
-      color: '#ffffff',
-      textAlign: 'center',
-      lineHeight: '1',
-    } satisfies Partial<CSSStyleDeclaration>);
-    route.textContent = '101';
-    sign.appendChild(route);
+  /** Place a 3D "101 NORTH" highway sign on the right side of the on-ramp. */
+  private spawnHighwaySign(): void {
+    const group = new Group();
 
-    const direction = document.createElement('div');
-    Object.assign(direction.style, {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#ffffff',
-      textAlign: 'center',
-      letterSpacing: '4px',
-      marginTop: '4px',
-    } satisfies Partial<CSSStyleDeclaration>);
-    direction.textContent = 'NORTH';
-    sign.appendChild(direction);
+    // Two posts
+    const postMat = new MeshStandardMaterial({ color: '#555555', roughness: 0.7 });
+    const postGeo = new BoxGeometry(0.15, 4, 0.15);
+    const leftPost = new Mesh(postGeo, postMat);
+    leftPost.position.set(-1.8, 2, 0);
+    group.add(leftPost);
+    const rightPost = new Mesh(postGeo, postMat);
+    rightPost.position.set(1.8, 2, 0);
+    group.add(rightPost);
 
-    const city = document.createElement('div');
-    Object.assign(city.style, {
-      fontSize: '14px',
-      color: '#ffffff',
-      textAlign: 'center',
-      marginTop: '8px',
-      opacity: '0.8',
-    } satisfies Partial<CSSStyleDeclaration>);
-    city.textContent = 'San Francisco';
-    sign.appendChild(city);
+    // Sign face — canvas texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d')!;
 
-    document.body.appendChild(sign);
+    // Green background with white border
+    ctx.fillStyle = '#006633';
+    ctx.fillRect(0, 0, 256, 192);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(6, 6, 244, 180);
 
-    // Animate: slide left as if passing by, then fade
-    void sign.offsetHeight;
-    sign.style.transform = 'translateX(-120vw)';
-    sign.style.opacity = '0';
+    // "101" large
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('101', 128, 65);
 
-    setTimeout(() => sign.remove(), 2000);
+    // "NORTH" medium
+    ctx.font = 'bold 28px sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('NORTH', 128, 115);
+
+    // "San Francisco" small
+    ctx.font = '18px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('San Francisco', 128, 155);
+
+    const tex = new CanvasTexture(canvas);
+    const signPlane = new Mesh(
+      new PlaneGeometry(4, 3),
+      new MeshBasicMaterial({ map: tex, side: DoubleSide }),
+    );
+    signPlane.position.set(0, 5, 0);
+    group.add(signPlane);
+
+    // Place on the right side of the on-ramp, ahead of the player's starting position
+    // Player starts at z=15, sign should be ahead at z≈-15 so it scrolls past
+    group.position.set(laneToX(NUM_LANES - 1) + 8, 0, -15);
+
+    this.renderer.scene.add(group);
+    this.highwaySign = group;
+  }
+
+  /** Remove the highway sign from the scene. */
+  private removeHighwaySign(): void {
+    if (this.highwaySign) {
+      this.renderer.scene.remove(this.highwaySign);
+      this.highwaySign = null;
+    }
   }
 
   private flashGo(): void {
