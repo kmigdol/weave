@@ -74,30 +74,29 @@ export class Game {
     this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
   }
 
-  async start(): Promise<void> {
-    // Load GLB assets — fall back to boxes on failure
-    try {
-      this.assets = await loadAssets();
-    } catch (e) {
-      console.warn('Asset loading failed, using fallback boxes', e);
-    }
-
-    // Replace the fallback box with the GLB sedan if available
-    if (this.assets) {
-      this.renderer.scene.remove(this.playerMesh);
-      this.setupPlayerMesh();
-      this.traffic.setAssets(this.assets);
-
-      // Re-apply on-ramp starting position (setupPlayerMesh defaults to player.x, meshY, 0)
-      if (this.state.phase === 'onRamp') {
-        this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
-      }
-    }
-
+  start(): void {
+    // Start game loop immediately with box fallbacks
     this.input.attach();
     this.hud.show();
     this.lastFrameTimeMs = performance.now();
     this.rafHandle = requestAnimationFrame(this.frame);
+
+    // Load GLB assets in background — swap in when ready
+    loadAssets()
+      .then((assets) => {
+        this.assets = assets;
+        this.renderer.scene.remove(this.playerMesh);
+        this.setupPlayerMesh();
+        this.traffic.setAssets(assets);
+
+        // Re-apply on-ramp position if still in intro
+        if (this.state.phase === 'onRamp') {
+          this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
+        }
+      })
+      .catch((e) => {
+        console.warn('Asset loading failed, using fallback boxes', e);
+      });
   }
 
   stop(): void {
