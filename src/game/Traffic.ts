@@ -11,6 +11,7 @@ import {
   LANE_SPEED_MULTIPLIERS,
   LANE_SPEED_VARIATION,
   SEMI_SPEED_FACTOR,
+  TRAFFIC_MAX_SPEED,
   SWERVE_AMPLITUDE,
   SWERVE_FREQUENCY,
   SPEED_MIN_MS,
@@ -259,7 +260,7 @@ export class TrafficManager {
     // Assign speed
     const variationRoll = this.rng();
     const variation = 1 + (variationRoll - 0.5) * 2 * LANE_SPEED_VARIATION;
-    let speed = playerSpeed * LANE_SPEED_MULTIPLIERS[lane] * variation;
+    let speed = Math.min(playerSpeed * LANE_SPEED_MULTIPLIERS[lane] * variation, TRAFFIC_MAX_SPEED);
     if (type === 'semi') {
       speed *= SEMI_SPEED_FACTOR;
     }

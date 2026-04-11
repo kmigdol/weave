@@ -47,6 +47,8 @@ export const MAX_LANES_IN_BAND = 3;
 export const WALL_BAND_WIDTH = 12;
 /** Semi trucks are this fraction of their normal lane speed. */
 export const SEMI_SPEED_FACTOR = 0.6;
+/** Maximum traffic car speed in m/s (~100 mph). Player outruns traffic late-game. */
+export const TRAFFIC_MAX_SPEED = 45;
 
 // ── Swerving Pickup ────────────────────────────────────────────────
 /** Peak lateral offset of swerving pickup (meters from lane center). */
