@@ -168,12 +168,24 @@ export class Environment {
         const wraps = Math.ceil(overshoot / totalSpan);
         g.position.z -= wraps * totalSpan;
 
-        // Assign a new random billboard texture
+        // Assign a new random billboard texture, avoiding what's currently visible
         const signPlane = g.children.find((c) => c.name === 'billboardFace') as Mesh | undefined;
         if (signPlane) {
-          const mat = signPlane.material as MeshBasicMaterial;
-          mat.map = this.textures[Math.floor(Math.random() * this.textures.length)];
-          mat.needsUpdate = true;
+          const currentMat = signPlane.material as MeshBasicMaterial;
+          // Collect textures currently in use by other billboards
+          const inUse = new Set<CanvasTexture>();
+          for (const other of this.billboards) {
+            if (other === g) continue;
+            const otherPlane = other.children.find((c) => c.name === 'billboardFace') as Mesh | undefined;
+            if (otherPlane) {
+              inUse.add((otherPlane.material as MeshBasicMaterial).map as CanvasTexture);
+            }
+          }
+          // Pick a texture not currently in use
+          const available = this.textures.filter((t) => !inUse.has(t));
+          const pick = available.length > 0 ? available : this.textures;
+          currentMat.map = pick[Math.floor(Math.random() * pick.length)];
+          currentMat.needsUpdate = true;
         }
       }
     }
@@ -183,12 +195,13 @@ export class Environment {
 
   private createBillboards(scene: Scene): void {
     const count = Math.ceil(ROAD_LENGTH / BILLBOARD_SPACING);
-    // Shuffle texture order so billboards appear in random order each run
-    const texOrder = Array.from({ length: count }, (_, i) => i % this.textures.length);
-    for (let i = texOrder.length - 1; i > 0; i--) {
+    // Shuffle all texture indices and assign without repeats
+    const shuffled = Array.from({ length: this.textures.length }, (_, i) => i);
+    for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [texOrder[i], texOrder[j]] = [texOrder[j], texOrder[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
+    const texOrder = Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
     for (let i = 0; i < count; i++) {
       const group = new Group();
       const side = i % 2 === 0 ? 1 : -1; // alternating right/left
