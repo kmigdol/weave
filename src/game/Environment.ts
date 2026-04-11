@@ -149,6 +149,12 @@ export class Environment {
 
   private createBillboards(scene: Scene): void {
     const count = Math.ceil(ROAD_LENGTH / BILLBOARD_SPACING);
+    // Shuffle texture order so billboards appear in random order each run
+    const texOrder = Array.from({ length: count }, (_, i) => i % this.textures.length);
+    for (let i = texOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [texOrder[i], texOrder[j]] = [texOrder[j], texOrder[i]];
+    }
     for (let i = 0; i < count; i++) {
       const group = new Group();
       const side = i % 2 === 0 ? 1 : -1; // alternating right/left
@@ -163,7 +169,7 @@ export class Environment {
 
       // Billboard plane on top of post
       const planeGeo = new PlaneGeometry(8, 4);
-      const texture = this.textures[i % this.textures.length];
+      const texture = this.textures[texOrder[i]];
       const planeMat = new MeshBasicMaterial({
         map: texture,
         side: DoubleSide,
