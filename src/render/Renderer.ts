@@ -199,7 +199,36 @@ export class Renderer {
 
     const FILL = '#0a0f1e';
 
-    // ── Rolling hills baseline ─────────────────────────────────────
+    // ── Distant hills (behind city, lighter shade for depth) ──────
+    ctx.fillStyle = '#1a2540';
+    ctx.beginPath();
+    ctx.moveTo(0, ch);
+    for (let x = 0; x <= cw; x++) {
+      const y = ch - 60
+        + Math.sin(x * 0.0015 + 0.5) * 35
+        + Math.sin(x * 0.004 + 1.2) * 15
+        + Math.sin(x * 0.009) * 8;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Mid hills (between distant and city, medium shade) ────────
+    ctx.fillStyle = '#111b30';
+    ctx.beginPath();
+    ctx.moveTo(0, ch);
+    for (let x = 0; x <= cw; x++) {
+      const y = ch - 40
+        + Math.sin(x * 0.0025 + 2.0) * 25
+        + Math.sin(x * 0.006 + 0.7) * 10;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Near rolling hills (foreground baseline) ──────────────────
     ctx.fillStyle = FILL;
     ctx.beginPath();
     ctx.moveTo(0, ch);
