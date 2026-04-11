@@ -146,7 +146,7 @@ export class TrafficManager {
   private static minFollowGap(ahead: TrafficCar, behind: TrafficCar): number {
     const aHalfZ = ahead.type === 'semi' ? 4.0 : 1.9;
     const bHalfZ = behind.type === 'semi' ? 4.0 : 1.9;
-    return aHalfZ + bHalfZ + 1.0; // +1m buffer
+    return aHalfZ + bHalfZ + 5.0; // +5m buffer — visible gap between queued cars
   }
 
   /**

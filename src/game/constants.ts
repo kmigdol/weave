@@ -18,11 +18,11 @@ export const TRAFFIC_SAME_LANE_GAP = 30;
  * Base spawn interval in seconds at minimum speed.
  * Decreases as player speed increases (more traffic at high speed).
  */
-export const TRAFFIC_BASE_SPAWN_INTERVAL = 0.45;
+export const TRAFFIC_BASE_SPAWN_INTERVAL = 0.30;
 /**
  * Minimum spawn interval in seconds (cap so density doesn't get absurd).
  */
-export const TRAFFIC_MIN_SPAWN_INTERVAL = 0.18;
+export const TRAFFIC_MIN_SPAWN_INTERVAL = 0.12;
 
 /** Probability that a spawned car is a semi (slow, large). */
 export const HAZARD_SEMI_CHANCE = 0.1;
