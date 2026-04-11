@@ -51,9 +51,8 @@ const BILLBOARD_SPECS: BillboardSpec[] = [
   { text: 'zAI', bgColor: '#000000', textColor: '#ffffff', fontSize: 60, fontStyle: 'bold 60px sans-serif', subtitle: 'Move Fast And Replace Everyone', accentColor: '#ef4444' },
   { text: 'Cursyr', bgColor: '#0f172a', textColor: '#4ade80', fontSize: 36, fontStyle: '36px monospace', subtitle: 'Just Tab Accept Everything Tab Tab Tab Tab' },
   { text: 'Wayless', bgColor: '#ffffff', textColor: '#374151', fontSize: 44, fontStyle: '44px sans-serif', subtitle: 'Our Cars Are Lost Too' },
-  { text: 'degrees.fyi', bgColor: '#facc15', textColor: '#000000', fontSize: 42, fontStyle: 'bold 42px sans-serif', subtitle: 'I Mass-Produced Your Job' },
+  { text: 'degrees.fyi', bgColor: '#facc15', textColor: '#000000', fontSize: 42, fontStyle: 'bold 42px sans-serif', subtitle: 'Making You Feel Bad 24 Hours A Day' },
   { text: '[stealth]', bgColor: '#ffffff', textColor: '#9ca3af', fontSize: 28, fontStyle: '28px sans-serif' },
-  { text: 'Series F', bgColor: '#ffffff', textColor: '#000000', fontSize: 32, fontStyle: '32px sans-serif' },
   { text: 'AI for AI', bgColor: '#1a73e8', textColor: '#ffffff', fontSize: 48, fontStyle: 'bold 48px sans-serif' },
   { text: 'STOP HIRING HUMANS', bgColor: '#dc2626', textColor: '#ffffff', fontSize: 44, fontStyle: 'bold 44px sans-serif' },
   { text: 'WE RAISED $400M', bgColor: '#6366f1', textColor: '#ffffff', fontSize: 46, fontStyle: 'bold 46px sans-serif' },
@@ -170,9 +169,7 @@ export class Environment {
         g.position.z -= wraps * totalSpan;
 
         // Assign a new random billboard texture
-        const signPlane = g.children.find(
-          (c) => (c as Mesh).material && 'map' in (c as Mesh).material,
-        ) as Mesh | undefined;
+        const signPlane = g.children.find((c) => c.name === 'billboardFace') as Mesh | undefined;
         if (signPlane) {
           const mat = signPlane.material as MeshBasicMaterial;
           mat.map = this.textures[Math.floor(Math.random() * this.textures.length)];
@@ -212,6 +209,7 @@ export class Environment {
         side: DoubleSide,
       });
       const plane = new Mesh(planeGeo, planeMat);
+      plane.name = 'billboardFace';
       plane.position.set(0, 10, 0);
       // Angle slightly toward road
       plane.rotation.y = side > 0 ? -0.15 : 0.15;

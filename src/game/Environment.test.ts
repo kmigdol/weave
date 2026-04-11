@@ -122,7 +122,7 @@ describe('Environment', () => {
     it('generates exactly 18 billboard textures', () => {
       const env = new Environment(scene);
       // Access the internal textures via the public getter for testing
-      expect(env.billboardTextureCount).toBe(18);
+      expect(env.billboardTextureCount).toBe(17);
     });
   });
 
