@@ -267,26 +267,64 @@ export class Renderer {
     building(835, 25, 50);
     building(865, 30, 35);
 
-    // ── Bay Bridge (x ≈ 900–1200) ──────────────────────────────────
-    // Deck
-    ctx.fillRect(900, ch - 30 - 20, 300, 6);
-    // Left tower
-    ctx.fillRect(940, ch - 30 - 50, 8, 50);
-    // Right tower
-    ctx.fillRect(1150, ch - 30 - 50, 8, 50);
-    // Cables (triangle shapes from towers to deck)
+    // ── Bay Bridge (x ≈ 850–1250) — prominent suspension bridge ────
+    const bridgeY = ch - 30;
+    const deckY = bridgeY - 25;
+
+    // Deck — thick and wide
+    ctx.fillRect(850, deckY, 400, 8);
+
+    // Two tall towers with tapered tops
+    for (const tx of [920, 1180]) {
+      // Tower legs (two pillars per tower)
+      ctx.fillRect(tx - 6, deckY - 80, 5, 80);
+      ctx.fillRect(tx + 1, deckY - 80, 5, 80);
+      // Tower cap
+      ctx.fillRect(tx - 8, deckY - 82, 16, 5);
+      // Cross-braces
+      ctx.fillRect(tx - 5, deckY - 55, 10, 3);
+      ctx.fillRect(tx - 5, deckY - 35, 10, 3);
+    }
+
+    // Suspension cables — parabolic curves from tower to tower
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = FILL;
+    // Main span cables (tower 1 to tower 2)
+    for (const cableY of [-78, -75]) {
+      ctx.beginPath();
+      ctx.moveTo(924, deckY + cableY);
+      for (let cx = 924; cx <= 1180; cx += 4) {
+        const t = (cx - 924) / (1180 - 924);
+        const sag = 45 * 4 * t * (1 - t); // parabola
+        ctx.lineTo(cx, deckY + cableY + sag);
+      }
+      ctx.stroke();
+    }
+    // Side span cables (left approach)
     ctx.beginPath();
-    ctx.moveTo(944, ch - 30 - 50);
-    ctx.lineTo(1050, ch - 30 - 22);
-    ctx.lineTo(944, ch - 30 - 22);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(850, deckY - 10);
+    for (let cx = 850; cx <= 924; cx += 4) {
+      const t = (cx - 850) / (924 - 850);
+      const sag = -68 * t; // rise to tower top
+      ctx.lineTo(cx, deckY - 10 + sag);
+    }
+    ctx.stroke();
+    // Side span cables (right approach)
     ctx.beginPath();
-    ctx.moveTo(1154, ch - 30 - 50);
-    ctx.lineTo(1050, ch - 30 - 22);
-    ctx.lineTo(1154, ch - 30 - 22);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(1250, deckY - 10);
+    for (let cx = 1250; cx >= 1180; cx -= 4) {
+      const t = (1250 - cx) / (1250 - 1180);
+      const sag = -68 * t;
+      ctx.lineTo(cx, deckY - 10 + sag);
+    }
+    ctx.stroke();
+
+    // Vertical suspender cables from main span
+    for (let cx = 940; cx <= 1170; cx += 16) {
+      const t = (cx - 924) / (1180 - 924);
+      const cableBottom = deckY - 75 + 45 * 4 * t * (1 - t);
+      ctx.fillRect(cx, cableBottom, 1, deckY - cableBottom);
+    }
 
     // ── Buildings between bridge and Sutro ──────────────────────────
     building(1250, 30, 40);
