@@ -7,7 +7,7 @@ import {
   HemisphereLight,
   FogExp2,
   SphereGeometry,
-  CylinderGeometry,
+  PlaneGeometry,
   ShaderMaterial,
   Mesh,
   BackSide,
@@ -401,14 +401,8 @@ export class Renderer {
     ctx.globalCompositeOperation = 'source-over';
 
     const tex = new CanvasTexture(canvas);
-    // Use a cylinder arc so the skyline wraps around the horizon
-    // instead of being a flat plane with visible edges
-    const radius = 750;
-    const height = 120;
-    const arc = Math.PI * 0.8; // ~144° wrap
-    // Center the arc around -z (where the camera looks). In CylinderGeometry
-    // theta=0 is +x, so -z is at theta=3π/2.
-    const geo = new CylinderGeometry(radius, radius, height, 64, 1, true, Math.PI * 1.5 - arc / 2, arc);
+    // Wide plane far ahead — 3000 units covers full FOV at z=-600
+    const geo = new PlaneGeometry(3000, 150);
     const mat = new MeshBasicMaterial({
       map: tex,
       transparent: true,
@@ -416,7 +410,7 @@ export class Renderer {
       side: DoubleSide,
     });
     const mesh = new Mesh(geo, mat);
-    mesh.position.set(0, 30, 0); // centered on player
+    mesh.position.set(0, 40, -600);
     return mesh;
   }
 
