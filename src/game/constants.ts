@@ -83,7 +83,7 @@ export const NEAR_MISS_BURST_PER_COMBO = 0.10;
 /** Duration of a near-miss speed burst (seconds). */
 export const NEAR_MISS_BURST_DURATION = 0.5;
 /** Seconds before combo decays back to 0. */
-export const COMBO_DECAY_TIME = 3.0;
+export const COMBO_DECAY_TIME = 1.5;
 /** Seconds spent in slipstream zone to trigger BOOST. */
 export const SLIPSTREAM_CHARGE_TIME = 1.0;
 /** Speed bonus while BOOST is active (fraction of base speed). */
