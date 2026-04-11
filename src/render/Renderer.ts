@@ -271,22 +271,25 @@ export class Renderer {
     building(545, 30, 40);
 
     // ── Salesforce Tower (x ≈ 600 + S, tallest) ────────────────────
-    // Tapered obelisk shape — wide base narrowing to a rounded bullet top
+    // Mostly straight shaft, gentle taper only in the upper third, rounded bullet top
     ctx.beginPath();
     const stCx = 607 + S; // center x
-    const stBaseHW = 20;  // half-width at base
-    const stTopHW = 10;   // half-width at top (tapered)
+    const stHW = 18;      // half-width (straight shaft)
+    const stTopHW = 11;   // half-width where taper ends
     const stH = 185;
     const stBase = ch - 30;
     const stTop = stBase - stH;
-    // Left edge — tapers inward
-    ctx.moveTo(stCx - stBaseHW, stBase);
-    ctx.lineTo(stCx - stTopHW, stTop + 30);
+    const taperStart = stTop + stH * 0.65; // taper begins 65% up
+    // Left edge — straight then tapers
+    ctx.moveTo(stCx - stHW, stBase);
+    ctx.lineTo(stCx - stHW, taperStart);
+    ctx.lineTo(stCx - stTopHW, stTop + 20);
     // Rounded bullet top
-    ctx.quadraticCurveTo(stCx - stTopHW, stTop + 8, stCx, stTop);
-    ctx.quadraticCurveTo(stCx + stTopHW, stTop + 8, stCx + stTopHW, stTop + 30);
-    // Right edge — tapers inward
-    ctx.lineTo(stCx + stBaseHW, stBase);
+    ctx.quadraticCurveTo(stCx - stTopHW, stTop + 5, stCx, stTop);
+    ctx.quadraticCurveTo(stCx + stTopHW, stTop + 5, stCx + stTopHW, stTop + 20);
+    // Right edge — tapers then straight
+    ctx.lineTo(stCx + stHW, taperStart);
+    ctx.lineTo(stCx + stHW, stBase);
     ctx.closePath();
     ctx.fill();
 
