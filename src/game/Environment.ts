@@ -19,7 +19,7 @@ const ROAD_LENGTH = 600;
 const ROAD_WIDTH = NUM_LANES * LANE_WIDTH + 4;
 const WRAP_BEHIND = 50;  // z threshold behind camera to trigger wrap
 
-const BILLBOARD_SPACING = 200;
+const BILLBOARD_SPACING = 80;
 const SIGN_SPACING = 500;
 const TREE_CLUSTER_SPACING = 100;
 const GANTRY_SPACING = 400;
