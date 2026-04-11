@@ -61,9 +61,12 @@ vi.mock('three', () => {
   class MockMesh {
     position = new MockVector3();
     rotation = new MockEuler();
+    scale = new MockVector3();
     geometry = { dispose: vi.fn() };
     material = { dispose: vi.fn() };
-    constructor(public geo?: any, public mat?: any) {}
+    constructor(public geo?: any, public mat?: any) {
+      this.scale.set(1, 1, 1);
+    }
   }
   class MockScene {
     children: any[] = [];
@@ -82,6 +85,7 @@ vi.mock('three', () => {
     BoxGeometry: vi.fn(),
     CylinderGeometry: vi.fn(),
     ConeGeometry: vi.fn(),
+    SphereGeometry: vi.fn(),
     MeshStandardMaterial: vi.fn(),
     MeshBasicMaterial: vi.fn(),
     CanvasTexture: class MockCanvasTexture {

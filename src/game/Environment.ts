@@ -10,6 +10,7 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   Scene,
+  SphereGeometry,
 } from 'three';
 import { NUM_LANES, LANE_WIDTH } from './Player';
 
@@ -26,6 +27,11 @@ const GANTRY_SPACING = 400;
 const BILLBOARD_X_OFFSET = 15;
 const TREE_X_MIN = 20;
 const TREE_X_MAX = 28;
+const SHRUB_SPACING = 30;
+const SHRUB_X_MIN = 13;
+const SHRUB_X_MAX = 35;
+const POLE_SPACING = 150;
+const POLE_X_OFFSET = 18;
 
 // ── Billboard texture pool ──────────────────────────────────────────
 
@@ -70,6 +76,8 @@ export class Environment {
   private readonly frewaySigns: Group[] = [];
   private readonly palmTreeClusters: Group[] = [];
   private readonly gantries: Group[] = [];
+  private readonly shrubClusters: Group[] = [];
+  private readonly utilityPoles: Group[] = [];
   private readonly textures: CanvasTexture[] = [];
 
   constructor(scene: Scene) {
@@ -81,6 +89,8 @@ export class Environment {
     this.createFrewaySigns(scene);
     this.createPalmTreeClusters(scene);
     this.createGantries(scene);
+    this.createShrubClusters(scene);
+    this.createUtilityPoles(scene);
   }
 
   // ── Public API ──────────────────────────────────────────────────────
@@ -90,6 +100,8 @@ export class Environment {
     this.scrollAndWrap(this.frewaySigns, distanceDelta, SIGN_SPACING);
     this.scrollAndWrap(this.palmTreeClusters, distanceDelta, TREE_CLUSTER_SPACING);
     this.scrollAndWrap(this.gantries, distanceDelta, GANTRY_SPACING);
+    this.scrollAndWrap(this.shrubClusters, distanceDelta, SHRUB_SPACING);
+    this.scrollAndWrap(this.utilityPoles, distanceDelta, POLE_SPACING);
   }
 
   // ── Test-facing accessors (pure logic) ─────────────────────────────
@@ -121,6 +133,8 @@ export class Environment {
       ...this.frewaySigns,
       ...this.palmTreeClusters,
       ...this.gantries,
+      ...this.shrubClusters,
+      ...this.utilityPoles,
     ];
     return all.map((g) => g.position.z);
   }
@@ -161,21 +175,21 @@ export class Environment {
       const x = side * BILLBOARD_X_OFFSET;
 
       // Post
-      const postGeo = new BoxGeometry(0.3, 5, 0.3);
+      const postGeo = new BoxGeometry(0.4, 7, 0.4);
       const postMat = new MeshStandardMaterial({ color: '#666666', roughness: 0.7 });
       const post = new Mesh(postGeo, postMat);
-      post.position.set(0, 2.5, 0);
+      post.position.set(0, 3.5, 0);
       group.add(post);
 
-      // Billboard plane on top of post
-      const planeGeo = new PlaneGeometry(8, 4);
+      // Billboard plane on top of post — large for readability at speed
+      const planeGeo = new PlaneGeometry(12, 6);
       const texture = this.textures[texOrder[i]];
       const planeMat = new MeshBasicMaterial({
         map: texture,
         side: DoubleSide,
       });
       const plane = new Mesh(planeGeo, planeMat);
-      plane.position.set(0, 7, 0);
+      plane.position.set(0, 10, 0);
       // Angle slightly toward road
       plane.rotation.y = side > 0 ? -0.15 : 0.15;
       group.add(plane);
@@ -348,6 +362,78 @@ export class Environment {
       group.position.set(0, 0, WRAP_BEHIND - i * GANTRY_SPACING);
       scene.add(group);
       this.gantries.push(group);
+    }
+  }
+
+  // ── Shrub cluster creation ─────────────────────────────────────────
+
+  private createShrubClusters(scene: Scene): void {
+    const count = Math.ceil(ROAD_LENGTH / SHRUB_SPACING);
+    const shrubMats = [
+      new MeshStandardMaterial({ color: '#3a6b2a', roughness: 0.9 }),
+      new MeshStandardMaterial({ color: '#4a7a35', roughness: 0.9 }),
+      new MeshStandardMaterial({ color: '#2d5a20', roughness: 0.9 }),
+      new MeshStandardMaterial({ color: '#5a7a40', roughness: 0.85 }), // dry/yellowed
+    ];
+
+    for (let i = 0; i < count; i++) {
+      const cluster = new Group();
+
+      // 2-5 shrubs per cluster, scattered on both sides
+      const shrubCount = 2 + Math.floor(Math.random() * 4);
+      for (let s = 0; s < shrubCount; s++) {
+        const side = Math.random() > 0.5 ? 1 : -1;
+        const x = side * (SHRUB_X_MIN + Math.random() * (SHRUB_X_MAX - SHRUB_X_MIN));
+        const scaleY = 0.4 + Math.random() * 0.6; // height variation
+        const scaleXZ = 0.6 + Math.random() * 0.8; // width variation
+
+        const shrub = new Mesh(
+          new SphereGeometry(1, 5, 4),
+          shrubMats[Math.floor(Math.random() * shrubMats.length)],
+        );
+        shrub.position.set(x, scaleY * 0.5, (Math.random() - 0.5) * 8);
+        shrub.scale.set(scaleXZ, scaleY, scaleXZ);
+        cluster.add(shrub);
+      }
+
+      cluster.position.set(0, 0, WRAP_BEHIND - i * SHRUB_SPACING);
+      scene.add(cluster);
+      this.shrubClusters.push(cluster);
+    }
+  }
+
+  // ── Utility pole creation ─────────────────────────────────────────
+
+  private createUtilityPoles(scene: Scene): void {
+    const count = Math.ceil(ROAD_LENGTH / POLE_SPACING);
+    const poleMat = new MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 });
+    const wireMat = new MeshStandardMaterial({ color: '#222222', roughness: 0.3, metalness: 0.6 });
+
+    for (let i = 0; i < count; i++) {
+      const group = new Group();
+      const side = i % 2 === 0 ? 1 : -1;
+      const x = side * POLE_X_OFFSET;
+
+      // Vertical pole
+      const pole = new Mesh(new CylinderGeometry(0.08, 0.12, 9, 5), poleMat);
+      pole.position.set(0, 4.5, 0);
+      group.add(pole);
+
+      // Crossbar at top
+      const crossbar = new Mesh(new BoxGeometry(3, 0.08, 0.08), poleMat);
+      crossbar.position.set(0, 8.8, 0);
+      group.add(crossbar);
+
+      // Insulators (small bumps on crossbar)
+      for (const offset of [-1.2, 0, 1.2]) {
+        const insulator = new Mesh(new CylinderGeometry(0.05, 0.05, 0.2, 4), wireMat);
+        insulator.position.set(offset, 9.0, 0);
+        group.add(insulator);
+      }
+
+      group.position.set(x, 0, WRAP_BEHIND - i * POLE_SPACING);
+      scene.add(group);
+      this.utilityPoles.push(group);
     }
   }
 
