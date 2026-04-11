@@ -404,7 +404,9 @@ export class Renderer {
     const radius = 750;
     const height = 120;
     const arc = Math.PI * 0.8; // ~144° wrap
-    const geo = new CylinderGeometry(radius, radius, height, 64, 1, true, Math.PI / 2 - arc / 2, arc);
+    // Center the arc around -z (where the camera looks). In CylinderGeometry
+    // theta=0 is +x, so -z is at theta=3π/2.
+    const geo = new CylinderGeometry(radius, radius, height, 64, 1, true, Math.PI * 1.5 - arc / 2, arc);
     const mat = new MeshBasicMaterial({
       map: tex,
       transparent: true,
