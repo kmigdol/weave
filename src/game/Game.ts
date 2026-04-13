@@ -115,6 +115,10 @@ export class Game {
         this.setupPlayerMesh();
         this.traffic.setAssets(assets);
 
+        // Clear any fallback-box traffic spawned before assets loaded
+        this.traffic.reset();
+        this.traffic.clearDespawnedIds();
+
         if (this.state.phase === 'onRamp') {
           this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
         }
