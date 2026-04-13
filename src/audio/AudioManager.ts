@@ -1,12 +1,11 @@
 import * as Tone from 'tone';
+import { SPEED_MIN_MS, SPEED_MAX_MS } from '../game/constants';
 
 const STORAGE_KEY = 'weave-audio-muted';
 
 /** Map game speed (m/s) to engine oscillator frequency (Hz). */
 export function speedToFrequency(speedMs: number): number {
-  const minSpeed = 24.6;
-  const maxSpeed = 80.5;
-  const t = Math.max(0, Math.min(1, (speedMs - minSpeed) / (maxSpeed - minSpeed)));
+  const t = Math.max(0, Math.min(1, (speedMs - SPEED_MIN_MS) / (SPEED_MAX_MS - SPEED_MIN_MS)));
   return 110 + t * 330;
 }
 
@@ -75,7 +74,7 @@ export class AudioManager {
     this.masterVolume = new Tone.Volume(0);
 
     // ── Boost effect chain (transparent when not boosting) ─────────
-    this.boostFilter = new Tone.Filter({ frequency: 20000, type: 'lowpass' });
+    this.boostFilter = new Tone.Filter({ frequency: 800, type: 'lowpass' });
     this.boostPitch = new Tone.PitchShift({ pitch: 0 });
     this.masterVolume.connect(this.boostFilter);
     this.boostFilter.connect(this.boostPitch);
@@ -423,9 +422,7 @@ export class AudioManager {
   setSpeed(speedMs: number): void {
     if (this._audioFailed || !this._unlocked) return;
     const freq = speedToFrequency(speedMs);
-    const minSpeed = 24.6;
-    const maxSpeed = 80.5;
-    const t = Math.max(0, Math.min(1, (speedMs - minSpeed) / (maxSpeed - minSpeed)));
+    const t = Math.max(0, Math.min(1, (speedMs - SPEED_MIN_MS) / (SPEED_MAX_MS - SPEED_MIN_MS)));
     this.engineOsc.frequency.rampTo(freq, 0.1);
     // Engine volume: quiet at low speed, louder at high speed
     this.engineGain.gain.rampTo(0.15 + t * 0.35, 0.1);
@@ -451,8 +448,8 @@ export class AudioManager {
     if (this._audioFailed || !this._unlocked || !this._boosting) return;
     this._boosting = false;
 
-    // Sweep filter back to fully open (no effect)
-    this.boostFilter.frequency.rampTo(20000, 0.5);
+    // Sweep filter back to baseline (slightly muffled)
+    this.boostFilter.frequency.rampTo(800, 0.5);
 
     // Pitch shift back to normal
     this.boostPitch.pitch = 0;
