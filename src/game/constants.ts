@@ -108,3 +108,20 @@ export const SHAKE_NEAR_MISS_DURATION = 0.15;
 export const SHAKE_CRASH_AMPLITUDE = 0.3;
 /** Camera shake duration on crash (seconds). */
 export const SHAKE_CRASH_DURATION = 0.4;
+
+// ── CRT Post-Process ──────────────────────────────────────────────────
+export const CRT_DEFAULTS = {
+  bloomStrength: 0.35,
+  bloomRadius: 0.4,
+  bloomThreshold: 0.85,
+  scanlineIntensity: 0.18,
+  chromaOffset: 0.0015,
+  vignetteStrength: 0.55,
+};
+
+export const CRT_LOW_QUALITY = {
+  bloomStrength: 0,
+  scanlineIntensity: 0.1,
+  chromaOffset: 0,
+  vignetteStrength: 0.4,
+};

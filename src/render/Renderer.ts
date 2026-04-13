@@ -20,6 +20,7 @@ import {
 } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { makeCRTPass } from './CRTPass';
 import {
   BOOST_FOV_INCREASE,
@@ -27,6 +28,8 @@ import {
   SHAKE_NEAR_MISS_DURATION,
   SHAKE_CRASH_AMPLITUDE,
   SHAKE_CRASH_DURATION,
+  CRT_DEFAULTS,
+  CRT_LOW_QUALITY,
 } from '../game/constants';
 
 const CAMERA_HEIGHT = 3.2;
@@ -49,7 +52,8 @@ export class Renderer {
   readonly camera: PerspectiveCamera;
   private readonly renderer: WebGLRenderer;
   private readonly composer: EffectComposer;
-  private readonly crtUniforms: { uTime: { value: number }; uResolution: { value: Vector2 } };
+  private readonly bloomPass: UnrealBloomPass;
+  private readonly crtUniforms: { uTime: { value: number }; uResolution: { value: Vector2 }; uScanlineIntensity: { value: number }; uChromaOffset: { value: number }; uVignetteStrength: { value: number } };
   private cameraX = 0;
   private readonly skylineMesh: Mesh;
 
@@ -111,9 +115,29 @@ export class Renderer {
     const resolution = new Vector2(window.innerWidth, window.innerHeight);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    this.bloomPass = new UnrealBloomPass(
+      resolution,
+      CRT_DEFAULTS.bloomStrength,
+      CRT_DEFAULTS.bloomRadius,
+      CRT_DEFAULTS.bloomThreshold,
+    );
+    this.composer.addPass(this.bloomPass);
+
     const crtPass = makeCRTPass(resolution);
     this.composer.addPass(crtPass);
     this.crtUniforms = crtPass.uniforms as typeof this.crtUniforms;
+
+    // Read quality preference from localStorage and apply it.
+    let lowQuality = false;
+    try {
+      lowQuality = localStorage.getItem('weave:lowQuality') === '1';
+    } catch {
+      // localStorage may be unavailable (private browsing, SSR, etc.)
+    }
+    if (lowQuality) {
+      this.setQuality(true);
+    }
 
     // Now that the composer + uniforms exist, run the full resize
     // handler once to sync everything and register it for future events.
@@ -452,6 +476,25 @@ export class Renderer {
   dispose(): void {
     window.removeEventListener('resize', this.resize);
     this.renderer.dispose();
+  }
+
+  // ── Quality toggle ──────────────────────────────────────────────
+
+  /**
+   * Switch between default and low-quality CRT settings.
+   * Low quality disables bloom, reduces CRT effects, and lowers pixel ratio.
+   */
+  setQuality(low: boolean): void {
+    const settings = low ? CRT_LOW_QUALITY : CRT_DEFAULTS;
+
+    this.bloomPass.enabled = !low;
+    this.crtUniforms.uScanlineIntensity.value = settings.scanlineIntensity;
+    this.crtUniforms.uChromaOffset.value = settings.chromaOffset;
+    this.crtUniforms.uVignetteStrength.value = settings.vignetteStrength;
+
+    const dpr = low ? 1 : Math.min(window.devicePixelRatio, 2);
+    this.renderer.setPixelRatio(dpr);
+    this.resize();
   }
 
   // ── Camera effect triggers ───────────────────────────────────────

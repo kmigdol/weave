@@ -2,6 +2,11 @@ const formatter = new Intl.NumberFormat('en-US');
 
 export class GameOverOverlay {
   private el: HTMLDivElement | null = null;
+  private muteBtn: HTMLButtonElement | null = null;
+  private qualityBtn: HTMLButtonElement | null = null;
+
+  private muteCb: (() => void) | null = null;
+  private qualityCb: (() => void) | null = null;
 
   /** Show the overlay with run stats. Creates the DOM element if needed. */
   show(distanceMeters: number, durationSeconds: number, bestCombo: number = 0): void {
@@ -39,6 +44,52 @@ export class GameOverOverlay {
       `<div style="font-size:24px">time: ${time}s</div>`,
       `<div style="font-size:18px;color:rgba(255,255,255,0.6)">press space to retry</div>`,
     ].join('');
+
+    // --- Bottom-right toggle buttons ---
+    const btnContainer = document.createElement('div');
+    Object.assign(btnContainer.style, {
+      position: 'absolute',
+      bottom: '20px',
+      right: '20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      alignItems: 'flex-end',
+    } satisfies Partial<CSSStyleDeclaration>);
+
+    this.qualityBtn = this.createToggleButton('HQ');
+    this.qualityBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.qualityCb?.();
+    });
+    btnContainer.appendChild(this.qualityBtn);
+
+    this.muteBtn = this.createToggleButton('SOUND: ON');
+    this.muteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.muteCb?.();
+    });
+    btnContainer.appendChild(this.muteBtn);
+
+    this.el.appendChild(btnContainer);
+  }
+
+  private createToggleButton(label: string): HTMLButtonElement {
+    const btn = document.createElement('button');
+    Object.assign(btn.style, {
+      background: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+      borderRadius: '4px',
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      padding: '6px 12px',
+      cursor: 'pointer',
+      letterSpacing: '1px',
+      pointerEvents: 'auto',
+    } satisfies Partial<CSSStyleDeclaration>);
+    btn.textContent = label;
+    return btn;
   }
 
   /** Hide the overlay. */
@@ -53,6 +104,28 @@ export class GameOverOverlay {
     if (this.el) {
       this.el.remove();
       this.el = null;
+      this.muteBtn = null;
+      this.qualityBtn = null;
+    }
+  }
+
+  onMuteToggle(cb: () => void): void {
+    this.muteCb = cb;
+  }
+
+  onQualityToggle(cb: () => void): void {
+    this.qualityCb = cb;
+  }
+
+  setMuted(muted: boolean): void {
+    if (this.muteBtn) {
+      this.muteBtn.textContent = muted ? 'SOUND: OFF' : 'SOUND: ON';
+    }
+  }
+
+  setLowQuality(low: boolean): void {
+    if (this.qualityBtn) {
+      this.qualityBtn.textContent = low ? 'LQ' : 'HQ';
     }
   }
 }

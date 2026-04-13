@@ -1,5 +1,6 @@
 import { ShaderMaterial, Uniform, Vector2 } from 'three';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { CRT_DEFAULTS } from '../game/constants';
 
 /**
  * CRT post-process pass: scanlines, subtle chromatic aberration, and a
@@ -13,9 +14,9 @@ export function makeCRTPass(resolution: Vector2): ShaderPass {
       tDiffuse: new Uniform(null),
       uResolution: new Uniform(resolution.clone()),
       uTime: new Uniform(0),
-      uScanlineIntensity: new Uniform(0.18),
-      uChromaOffset: new Uniform(0.0015),
-      uVignetteStrength: new Uniform(0.55),
+      uScanlineIntensity: new Uniform(CRT_DEFAULTS.scanlineIntensity),
+      uChromaOffset: new Uniform(CRT_DEFAULTS.chromaOffset),
+      uVignetteStrength: new Uniform(CRT_DEFAULTS.vignetteStrength),
     },
     vertexShader: VERTEX,
     fragmentShader: FRAGMENT,
