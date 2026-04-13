@@ -37,7 +37,7 @@ export class World {
     const road = new Mesh(
       new PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
       new MeshStandardMaterial({
-        color: '#2a2a32',
+        color: '#555560',
         roughness: 0.9,
         metalness: 0.0,
         side: DoubleSide,
@@ -46,6 +46,24 @@ export class World {
     road.rotation.x = -Math.PI / 2;
     road.position.z = -ROAD_LENGTH / 2 + 40; // extend far ahead, a bit behind camera
     scene.add(road);
+
+    // Ground planes on either side of the road (extends to horizon)
+    const groundMat = new MeshStandardMaterial({
+      color: '#3a5a30', // dry grass / scrubland
+      roughness: 1.0,
+      metalness: 0.0,
+      side: DoubleSide,
+    });
+    const groundWidth = 400; // wide enough to fill peripheral vision
+    const groundGeo = new PlaneGeometry(groundWidth, ROAD_LENGTH);
+    const leftGround = new Mesh(groundGeo, groundMat);
+    leftGround.rotation.x = -Math.PI / 2;
+    leftGround.position.set(-ROAD_WIDTH / 2 - groundWidth / 2, -0.05, -ROAD_LENGTH / 2 + 40);
+    scene.add(leftGround);
+    const rightGround = new Mesh(groundGeo, groundMat);
+    rightGround.rotation.x = -Math.PI / 2;
+    rightGround.position.set(ROAD_WIDTH / 2 + groundWidth / 2, -0.05, -ROAD_LENGTH / 2 + 40);
+    scene.add(rightGround);
 
     // Jersey barriers on both shoulders
     const barrierMat = new MeshStandardMaterial({ color: '#9a968c', roughness: 0.8 });

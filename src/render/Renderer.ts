@@ -2,11 +2,21 @@ import {
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
-  Color,
-  AmbientLight,
   DirectionalLight,
   Vector2,
   HemisphereLight,
+  FogExp2,
+  SphereGeometry,
+  PlaneGeometry,
+  ShaderMaterial,
+  Mesh,
+  BackSide,
+  Sprite,
+  SpriteMaterial,
+  CanvasTexture,
+  AdditiveBlending,
+  MeshBasicMaterial,
+  DoubleSide,
 } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -41,6 +51,7 @@ export class Renderer {
   private readonly composer: EffectComposer;
   private readonly crtUniforms: { uTime: { value: number }; uResolution: { value: Vector2 } };
   private cameraX = 0;
+  private readonly skylineMesh: Mesh;
 
   // ── Shake state ──────────────────────────────────────────────────
   private shakeTimer = 0;
@@ -54,16 +65,36 @@ export class Renderer {
   private currentFov = BASE_FOV;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.scene.background = new Color('#2a0f30'); // dusk placeholder — real skybox in WEA-3
+    this.scene.background = null; // sky sphere provides the background
     this.scene.fog = null;
 
-    // Lighting: placeholder flat look; full dusk sun/ambient comes in WEA-3.
-    this.scene.add(new AmbientLight('#7a5b80', 0.65));
-    const hemi = new HemisphereLight('#ff8a5b', '#1a0a28', 0.6);
+    // ── Sky sphere (dusk gradient) ─────────────────────────────────
+    this.scene.add(this.createSkySphere());
+
+    // ── Sun billboard ──────────────────────────────────────────────
+    this.scene.add(this.createSunSprite());
+
+    // ── SF skyline silhouette ──────────────────────────────────────
+    this.skylineMesh = this.createSkylineMesh();
+    this.scene.add(this.skylineMesh);
+
+    // ── Golden hour lighting ───────────────────────────────────────
+    // Warm key light (sun) — bright golden hour
+    const sunLight = new DirectionalLight('#ffe0a0', 1.8);
+    sunLight.position.set(-20, 25, -40);
+    this.scene.add(sunLight);
+
+    // Bright ambient fill — warm sky / warm ground
+    const hemi = new HemisphereLight('#87ceeb', '#e8c090', 0.8);
     this.scene.add(hemi);
-    const key = new DirectionalLight('#ffb07a', 0.9);
-    key.position.set(-20, 30, -40);
-    this.scene.add(key);
+
+    // Rim light for car readability — behind-right
+    const rimLight = new DirectionalLight('#aaccff', 0.5);
+    rimLight.position.set(15, 10, 30);
+    this.scene.add(rimLight);
+
+    // Light atmospheric fog
+    this.scene.fog = new FogExp2('#d4a574', 0.0015);
 
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
     this.camera.position.set(0, CAMERA_HEIGHT, CAMERA_BEHIND);
@@ -88,6 +119,334 @@ export class Renderer {
     // handler once to sync everything and register it for future events.
     this.resize();
     window.addEventListener('resize', this.resize);
+  }
+
+  // ── Sky / environment helpers ────────────────────────────────────
+
+  private createSkySphere(): Mesh {
+    const geo = new SphereGeometry(900, 32, 32);
+    const mat = new ShaderMaterial({
+      side: BackSide,
+      depthWrite: false,
+      vertexShader: /* glsl */ `
+        varying float vY;
+        void main() {
+          // Normalize y to -1..1 based on the unit sphere position.
+          vY = normalize(position).y;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying float vY;
+        void main() {
+          // Three-stop golden hour gradient: warm gold → peach → soft blue
+          vec3 gold    = vec3(1.0, 0.75, 0.3);     // #ffbf4d
+          vec3 peach   = vec3(0.95, 0.55, 0.4);     // #f28c66
+          vec3 skyBlue = vec3(0.35, 0.55, 0.85);    // #598cd9
+
+          float t1 = smoothstep(-1.0, 0.05, vY);   // gold → peach
+          float t2 = smoothstep(0.05, 0.5, vY);     // peach → sky blue
+
+          vec3 color = mix(gold, peach, t1);
+          color = mix(color, skyBlue, t2);
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+    });
+    return new Mesh(geo, mat);
+  }
+
+  private createSunSprite(): Sprite {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const grad = ctx.createRadialGradient(
+      size / 2, size / 2, 0,
+      size / 2, size / 2, size / 2,
+    );
+    grad.addColorStop(0, 'rgba(255, 228, 160, 1)');   // #ffe4a0
+    grad.addColorStop(0.4, 'rgba(255, 180, 80, 0.6)');
+    grad.addColorStop(1, 'rgba(255, 120, 40, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    const tex = new CanvasTexture(canvas);
+    const mat = new SpriteMaterial({
+      map: tex,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      transparent: true,
+    });
+    const sprite = new Sprite(mat);
+    sprite.position.set(-100, 20, -800);
+    sprite.scale.set(70, 70, 1);
+    return sprite;
+  }
+
+  private createSkylineMesh(): Mesh {
+    const cw = 2048;
+    const ch = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d')!;
+
+    // Fill transparent
+    ctx.clearRect(0, 0, cw, ch);
+
+    const FILL = '#1a2035';
+
+    // ── Distant hills (behind city, lighter shade for depth) ──────
+    ctx.fillStyle = '#2a3858';
+    ctx.beginPath();
+    ctx.moveTo(0, ch);
+    for (let x = 0; x <= cw; x++) {
+      const y = ch - 70
+        + Math.sin(x * 0.0015 + 0.5) * 40
+        + Math.sin(x * 0.004 + 1.2) * 18
+        + Math.sin(x * 0.009) * 10;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Mid hills (between distant and city, medium shade) ────────
+    ctx.fillStyle = '#1f2d48';
+    ctx.beginPath();
+    ctx.moveTo(0, ch);
+    for (let x = 0; x <= cw; x++) {
+      const y = ch - 40
+        + Math.sin(x * 0.0025 + 2.0) * 25
+        + Math.sin(x * 0.006 + 0.7) * 10;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Near rolling hills (foreground baseline) ──────────────────
+    ctx.fillStyle = FILL;
+    ctx.beginPath();
+    ctx.moveTo(0, ch);
+    for (let x = 0; x <= cw; x++) {
+      const y = ch - 30 + Math.sin(x * 0.003) * 12 + Math.sin(x * 0.008) * 6;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.closePath();
+    ctx.fill();
+
+    // Helper: filled rect (building) — shifted right by 350px to center in view
+    const S = 350; // shift offset
+    const building = (x: number, w: number, h: number) => {
+      ctx.fillRect(x + S, ch - 30 - h, w, h + 30);
+    };
+
+    ctx.fillStyle = FILL;
+
+    // ── Generic downtown cluster (left) ────────────────────────────
+    building(200, 30, 60);
+    building(235, 25, 80);
+    building(265, 35, 55);
+    building(305, 20, 85);
+    building(330, 28, 65);
+
+    // ── Transamerica Pyramid (x ≈ 400 + S) ─────────────────────────
+    // Wide base tapering to a narrow spire with "wing" elevator shafts
+    const tpCx = 400 + S;
+    const tpBase = ch - 30;
+    const tpH = 160;
+    ctx.beginPath();
+    // Left base
+    ctx.moveTo(tpCx - 22, tpBase);
+    // Left wing (elevator shaft) — slight bump partway up
+    ctx.lineTo(tpCx - 18, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx - 12, tpBase - tpH * 0.35);
+    // Taper to spire
+    ctx.lineTo(tpCx - 4, tpBase - tpH * 0.8);
+    // Narrow spire top
+    ctx.lineTo(tpCx, tpBase - tpH);
+    // Right side mirrors
+    ctx.lineTo(tpCx + 4, tpBase - tpH * 0.8);
+    ctx.lineTo(tpCx + 12, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx + 18, tpBase - tpH * 0.35);
+    ctx.lineTo(tpCx + 22, tpBase);
+    ctx.closePath();
+    ctx.fill();
+    // Horizontal floor lines for texture
+    ctx.strokeStyle = '#141d30';
+    ctx.lineWidth = 1;
+    for (let fy = tpBase - 10; fy > tpBase - tpH * 0.75; fy -= 8) {
+      const frac = (tpBase - fy) / tpH;
+      const hw = 22 * (1 - frac * 1.1);
+      if (hw < 2) break;
+      ctx.beginPath();
+      ctx.moveTo(tpCx - hw, fy);
+      ctx.lineTo(tpCx + hw, fy);
+      ctx.stroke();
+    }
+
+    // ── Generic buildings around Transamerica ──────────────────────
+    building(420, 30, 60);
+    building(455, 25, 50);
+    building(485, 30, 75);
+    building(520, 22, 55);
+    building(545, 30, 40);
+
+    // ── Salesforce Tower (x ≈ 600 + S, tallest) ────────────────────
+    // Gentle taper with flat rounded top — like the real Salesforce Tower
+    ctx.beginPath();
+    const stCx = 607 + S;
+    const stBaseHW = 16;
+    const stTopHW = 10;   // noticeable taper toward top
+    const stH = 185;
+    const stBase = ch - 30;
+    const stTop = stBase - stH;
+    // Left edge — gentle inward curve
+    ctx.moveTo(stCx - stBaseHW, stBase);
+    ctx.quadraticCurveTo(stCx - stBaseHW, stTop + stH * 0.3, stCx - stTopHW, stTop + 10);
+    // Flat rounded top
+    ctx.arcTo(stCx - stTopHW, stTop, stCx, stTop, 8);
+    ctx.arcTo(stCx + stTopHW, stTop, stCx + stTopHW, stTop + 10, 8);
+    // Right edge
+    ctx.quadraticCurveTo(stCx + stBaseHW, stTop + stH * 0.3, stCx + stBaseHW, stBase);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── More downtown buildings ────────────────────────────────────
+    building(635, 28, 60);
+    building(668, 35, 80);
+    building(710, 25, 55);
+    building(740, 30, 70);
+    building(775, 22, 45);
+    building(800, 30, 65);
+    building(835, 25, 50);
+    building(865, 30, 35);
+
+    // ── Bay Bridge (shifted by S) — prominent suspension bridge ────
+    const bS = S; // bridge shift
+    const bridgeY = ch - 30;
+    const deckY = bridgeY - 25;
+
+    // Deck — thick and wide
+    ctx.fillRect(850 + bS, deckY, 400, 8);
+
+    // Two tall towers with tapered tops
+    for (const tx of [920 + bS, 1180 + bS]) {
+      ctx.fillRect(tx - 6, deckY - 80, 5, 80);
+      ctx.fillRect(tx + 1, deckY - 80, 5, 80);
+      ctx.fillRect(tx - 8, deckY - 82, 16, 5);
+      ctx.fillRect(tx - 5, deckY - 55, 10, 3);
+      ctx.fillRect(tx - 5, deckY - 35, 10, 3);
+    }
+
+    // Suspension cables — parabolic curves from tower to tower
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = FILL;
+    const t1x = 924 + bS;
+    const t2x = 1180 + bS;
+    for (const cableY of [-78, -75]) {
+      ctx.beginPath();
+      ctx.moveTo(t1x, deckY + cableY);
+      for (let cx = t1x; cx <= t2x; cx += 4) {
+        const t = (cx - t1x) / (t2x - t1x);
+        const sag = 45 * 4 * t * (1 - t);
+        ctx.lineTo(cx, deckY + cableY + sag);
+      }
+      ctx.stroke();
+    }
+    // Side span cables
+    ctx.beginPath();
+    ctx.moveTo(850 + bS, deckY - 10);
+    for (let cx = 850 + bS; cx <= t1x; cx += 4) {
+      const t = (cx - 850 - bS) / (t1x - 850 - bS);
+      ctx.lineTo(cx, deckY - 10 - 68 * t);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(1250 + bS, deckY - 10);
+    for (let cx = 1250 + bS; cx >= t2x; cx -= 4) {
+      const t = (1250 + bS - cx) / (1250 + bS - t2x);
+      ctx.lineTo(cx, deckY - 10 - 68 * t);
+    }
+    ctx.stroke();
+
+    // Vertical suspender cables
+    for (let cx = t1x + 16; cx <= t2x - 10; cx += 16) {
+      const t = (cx - t1x) / (t2x - t1x);
+      const cableBottom = deckY - 75 + 45 * 4 * t * (1 - t);
+      ctx.fillRect(cx, cableBottom, 1, deckY - cableBottom);
+    }
+
+    // ── Buildings between bridge and Sutro ──────────────────────────
+    building(1250, 30, 40);
+    building(1285, 25, 55);
+    building(1320, 30, 35);
+    building(1355, 22, 45);
+
+    // ── Sutro Tower (x ≈ 1400 + S) ─────────────────────────────────
+    // Three prongs
+    const sutroBase = ch - 30 - 80;
+    const sutroX = 1400 + S;
+    ctx.fillRect(sutroX + 12, sutroBase - 50, 4, 50); // center prong (tallest)
+    ctx.fillRect(sutroX, sutroBase - 30, 4, 30);       // left prong
+    ctx.fillRect(sutroX + 24, sutroBase - 30, 4, 30);  // right prong
+    // Cross-bars
+    ctx.fillRect(sutroX - 2, sutroBase - 20, 32, 3);
+    ctx.fillRect(sutroX + 2, sutroBase - 40, 24, 3);
+    // Base/tower body
+    ctx.beginPath();
+    ctx.moveTo(sutroX + 4, sutroBase);
+    ctx.lineTo(sutroX + 10, ch - 30);
+    ctx.lineTo(sutroX + 18, ch - 30);
+    ctx.lineTo(sutroX + 24, sutroBase);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Trailing hills (right side) ────────────────────────────────
+    building(1460, 30, 30);
+    building(1500, 40, 20);
+    building(1560, 35, 25);
+
+    // ── Atmospheric fog overlay on buildings ─────────────────────────
+    // Semi-transparent warm haze rising from the base, softening the skyline
+    const fogGrad = ctx.createLinearGradient(0, ch, 0, ch - 180);
+    fogGrad.addColorStop(0, 'rgba(180, 130, 90, 0.6)');
+    fogGrad.addColorStop(0.4, 'rgba(180, 130, 90, 0.25)');
+    fogGrad.addColorStop(1, 'rgba(180, 130, 90, 0)');
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Clear the bottom strip to create fade-to-transparent at base
+    ctx.globalCompositeOperation = 'destination-out';
+    const fadeGrad = ctx.createLinearGradient(0, ch, 0, ch - 25);
+    fadeGrad.addColorStop(0, 'rgba(0,0,0,1)');
+    fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = fadeGrad;
+    ctx.fillRect(0, ch - 25, cw, 25);
+    ctx.globalCompositeOperation = 'source-over';
+
+    const tex = new CanvasTexture(canvas);
+    // Wide plane far ahead — 3000 units covers full FOV at z=-600
+    const geo = new PlaneGeometry(3000, 150);
+    const mat = new MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      side: DoubleSide,
+    });
+    const mesh = new Mesh(geo, mat);
+    mesh.position.set(0, 40, -600);
+    return mesh;
+  }
+
+  /** Shift the skyline slightly for parallax. Call from Game.ts each frame. */
+  updateSkyline(distanceDelta: number): void {
+    this.skylineMesh.position.x -= distanceDelta * 0.001;
   }
 
   dispose(): void {

@@ -1,4 +1,7 @@
-import { BoxGeometry, Mesh, MeshStandardMaterial } from 'three';
+import {
+  BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, Object3D, Box3,
+  PlaneGeometry, CanvasTexture, DoubleSide, Group,
+} from 'three';
 import { Renderer } from '../render/Renderer';
 import { Player, laneToX, NUM_LANES } from './Player';
 import { Input } from './Input';
@@ -7,11 +10,16 @@ import { FixedTimestepLoop } from '../lib/Loop';
 import { TrafficManager } from './Traffic';
 import { checkCollisions } from './Collisions';
 import { getSpeed } from './SpeedCurve';
-import { startRun, tickRun, crashRun, type GameState, type RunningState } from './GameState';
+import {
+  tickRun, crashRun, startOnRamp, tickOnRamp,
+  type GameState, type RunningState, type OnRampState,
+} from './GameState';
 import { initScoring, tickScoring, getSpeedMultiplier, resetScoring, type ScoringState } from './Scoring';
 import { GameOverOverlay } from '../ui/GameOverOverlay';
 import { HUD } from '../ui/HUD';
-import { BOOST_DURATION, SLIPSTREAM_CHARGE_TIME, NEAR_MISS_BURST_DURATION } from './constants';
+import { BOOST_DURATION, SLIPSTREAM_CHARGE_TIME, NEAR_MISS_BURST_DURATION, ON_RAMP_DURATION } from './constants';
+import { loadAssets, cloneCar, type AssetManifest } from '../render/Assets';
+import { Environment } from './Environment';
 
 const TICK_SECONDS = 1 / 60;
 
@@ -26,9 +34,12 @@ export class Game {
   private readonly player = new Player();
   private readonly input: Input;
   private readonly traffic: TrafficManager;
+  private readonly environment: Environment;
   private readonly overlay = new GameOverOverlay();
   private readonly hud = new HUD();
-  private readonly playerMesh: Mesh;
+  private playerMesh!: Object3D;
+  private assets: AssetManifest | null = null;
+  private playerMeshY = 0.6; // y offset so car bottom sits on road
   private rafHandle = 0;
   private lastFrameTimeMs = 0;
   private totalSeconds = 0;
@@ -40,19 +51,10 @@ export class Game {
     this.renderer = new Renderer(canvas);
     this.world = new World(this.renderer.scene);
     this.traffic = new TrafficManager(this.renderer.scene);
+    this.environment = new Environment(this.renderer.scene);
 
-    // Placeholder player car — just a red box at z=0. Real Kenney model in WEA-4.
-    this.playerMesh = new Mesh(
-      new BoxGeometry(1.6, 1.2, 3.8),
-      new MeshStandardMaterial({
-        color: '#ff3a2a',
-        emissive: '#ff1a08',
-        emissiveIntensity: 0.25,
-        roughness: 0.4,
-      }),
-    );
-    this.playerMesh.position.set(this.player.x, 0.6, 0);
-    this.renderer.scene.add(this.playerMesh);
+    // Player mesh is set up in start() after assets load; create fallback now
+    this.setupPlayerMesh();
 
     this.input = new Input(window);
     this.input.onLeft(() => {
@@ -65,15 +67,36 @@ export class Game {
       if (this.state.phase === 'gameOver') this.restart();
     });
 
-    this.state = startRun();
+    this.state = startOnRamp();
     this.scoring = initScoring();
+
+    // Position player off-screen for on-ramp intro
+    this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
   }
 
   start(): void {
+    // Start game loop immediately with box fallbacks
     this.input.attach();
     this.hud.show();
     this.lastFrameTimeMs = performance.now();
     this.rafHandle = requestAnimationFrame(this.frame);
+
+    // Load GLB assets in background — swap in when ready
+    loadAssets()
+      .then((assets) => {
+        this.assets = assets;
+        this.renderer.scene.remove(this.playerMesh);
+        this.setupPlayerMesh();
+        this.traffic.setAssets(assets);
+
+        // Re-apply on-ramp position if still in intro
+        if (this.state.phase === 'onRamp') {
+          this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
+        }
+      })
+      .catch((e) => {
+        console.warn('Asset loading failed, using fallback boxes', e);
+      });
   }
 
   stop(): void {
@@ -82,6 +105,53 @@ export class Game {
     this.hud.dispose();
     this.overlay.dispose();
     this.renderer.dispose();
+  }
+
+  /**
+   * Create (or re-create) the player mesh.
+   * Uses the Kenney sedan GLB if assets are loaded, otherwise falls back
+   * to a red box.
+   */
+  private setupPlayerMesh(): void {
+    let meshY = 0.6; // default for fallback box
+
+    if (this.assets?.sedan) {
+      const group = cloneCar(this.assets.sedan);
+
+      // Apply emissive red tail-light glow to all child meshes
+      group.traverse((child) => {
+        if ((child as Mesh).isMesh) {
+          const mat = (child as Mesh).material;
+          if (mat && 'emissive' in mat) {
+            const stdMat = mat as MeshStandardMaterial;
+            stdMat.emissive.set('#ff1a08');
+            stdMat.emissiveIntensity = 0.5;
+          }
+        }
+      });
+
+      // Compute bounding box so the bottom of the car sits on the road
+      const box = new Box3().setFromObject(group);
+      meshY = -box.min.y;
+
+      this.playerMesh = group;
+    } else {
+      // Fallback box
+      this.playerMesh = new Mesh(
+        new BoxGeometry(1.6, 1.2, 3.8),
+        new MeshStandardMaterial({
+          color: '#ff3a2a',
+          emissive: '#ff1a08',
+          emissiveIntensity: 0.25,
+          roughness: 0.4,
+        }),
+      );
+      meshY = 0.6;
+    }
+
+    this.playerMeshY = meshY;
+    this.playerMesh.position.set(this.player.x, meshY, 0);
+    this.renderer.scene.add(this.playerMesh);
   }
 
   private restart(): void {
@@ -94,9 +164,13 @@ export class Game {
     this.traffic.clearDespawnedIds();
 
     // Fresh game + scoring state
-    this.state = startRun();
+    this.state = startOnRamp();
     this.scoring = resetScoring();
     this.currentSpeed = 0;
+
+    // Position player off-screen for on-ramp intro
+    this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
+    this.removeHighwaySign();
 
     // Hide overlay, show HUD
     this.overlay.hide();
@@ -110,7 +184,9 @@ export class Game {
 
     this.totalSeconds += dtSeconds;
 
-    if (this.state.phase === 'running') {
+    if (this.state.phase === 'onRamp') {
+      this.updateOnRamp(dtSeconds);
+    } else if (this.state.phase === 'running') {
       const ticks = this.loop.step(dtSeconds);
       for (let i = 0; i < ticks; i++) {
         this.tick(TICK_SECONDS);
@@ -135,9 +211,169 @@ export class Game {
       );
     }
 
-    this.playerMesh.position.x = this.player.x;
+    // During on-ramp, position is driven by the intro curve; otherwise follow player model
+    if (this.state.phase !== 'onRamp') {
+      this.playerMesh.position.x = this.player.x;
+    }
     this.renderer.render(this.player.x, this.totalSeconds, this.loop.alpha());
   };
+
+  private updateOnRamp(dtSeconds: number): void {
+    const onRamp = this.state as OnRampState;
+    const nextState = tickOnRamp(onRamp, dtSeconds);
+
+    // Use new elapsed time so the animation completes smoothly on the transition frame
+    const newElapsed = Math.min(onRamp.elapsedSeconds + dtSeconds, ON_RAMP_DURATION);
+    const t = newElapsed / ON_RAMP_DURATION;
+    // Smoothstep ease-in-out for position interpolation
+    const tSmooth = t * t * (3 - 2 * t);
+
+    // Start position: off-screen right and behind camera
+    const startX = laneToX(NUM_LANES - 1) + 6;
+    const startZ = 15;
+    // End position: rightmost lane, normal player z
+    const endX = laneToX(NUM_LANES - 1);
+    const endZ = 0;
+
+    // Interpolate position
+    this.playerMesh.position.x = startX + (endX - startX) * tSmooth;
+    this.playerMesh.position.z = startZ + (endZ - startZ) * tSmooth;
+    this.playerMesh.position.y = this.playerMeshY;
+
+    // Ramp speed with ease-in (t*t) for world scrolling
+    const easeIn = t * t;
+    const speed = 27 * easeIn;
+    this.currentSpeed = speed;
+    this.world.update(speed * dtSeconds);
+    this.environment.update(speed * dtSeconds);
+    this.renderer.updateSkyline(speed * dtSeconds);
+
+    // Camera follows as normal
+    this.renderer.tick(this.playerMesh.position.x, dtSeconds);
+
+    // Do NOT update traffic during onRamp
+    // Do NOT process input during onRamp (already gated by phase check)
+
+    // Spawn highway sign at start of on-ramp if not already present
+    if (!this.highwaySign) {
+      this.spawnHighwaySign();
+    }
+
+    // Scroll the sign toward the player (same as world scroll)
+    if (this.highwaySign) {
+      this.highwaySign.position.z += speed * dtSeconds;
+    }
+
+    this.state = nextState;
+
+    // Transition to running: show "GO!" flash, clean up on-ramp props
+    if (nextState.phase === 'running') {
+      this.player.targetLane = NUM_LANES - 1;
+      this.player.x = laneToX(NUM_LANES - 1);
+      this.playerMesh.position.x = this.player.x;
+      this.playerMesh.position.z = 0;
+      this.removeHighwaySign();
+      this.flashGo();
+    }
+  }
+
+  private highwaySign: Group | null = null;
+
+  /** Place a 3D "101 NORTH" highway sign on the right side of the on-ramp. */
+  private spawnHighwaySign(): void {
+    const group = new Group();
+
+    // Two posts
+    const postMat = new MeshStandardMaterial({ color: '#555555', roughness: 0.7 });
+    const postGeo = new BoxGeometry(0.15, 4, 0.15);
+    const leftPost = new Mesh(postGeo, postMat);
+    leftPost.position.set(-1.8, 2, 0);
+    group.add(leftPost);
+    const rightPost = new Mesh(postGeo, postMat);
+    rightPost.position.set(1.8, 2, 0);
+    group.add(rightPost);
+
+    // Sign face — canvas texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d')!;
+
+    // Green background with white border
+    ctx.fillStyle = '#006633';
+    ctx.fillRect(0, 0, 256, 192);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(6, 6, 244, 180);
+
+    // "101" large
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('101', 128, 65);
+
+    // "NORTH" medium
+    ctx.font = 'bold 28px sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('NORTH', 128, 115);
+
+    // "San Francisco" small
+    ctx.font = '18px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('San Francisco', 128, 155);
+
+    const tex = new CanvasTexture(canvas);
+    const signPlane = new Mesh(
+      new PlaneGeometry(4, 3),
+      new MeshBasicMaterial({ map: tex, side: DoubleSide }),
+    );
+    signPlane.position.set(0, 5, 0);
+    group.add(signPlane);
+
+    // Place on the right side of the on-ramp, ahead of the player's starting position
+    // Player starts at z=15, sign should be ahead at z≈-15 so it scrolls past
+    group.position.set(laneToX(NUM_LANES - 1) + 8, 0, -15);
+
+    this.renderer.scene.add(group);
+    this.highwaySign = group;
+  }
+
+  /** Remove the highway sign from the scene. */
+  private removeHighwaySign(): void {
+    if (this.highwaySign) {
+      this.renderer.scene.remove(this.highwaySign);
+      this.highwaySign = null;
+    }
+  }
+
+  private flashGo(): void {
+    const el = document.createElement('div');
+    Object.assign(el.style, {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      fontSize: '96px',
+      fontWeight: 'bold',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      textShadow: '0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,200,50,0.6)',
+      pointerEvents: 'none',
+      zIndex: '1000',
+      opacity: '1',
+      transition: 'opacity 0.5s ease-out',
+    } satisfies Partial<CSSStyleDeclaration>);
+    el.textContent = 'GO!';
+    document.body.appendChild(el);
+
+    // Force reflow so the initial opacity takes effect before transitioning
+    void el.offsetHeight;
+    el.style.opacity = '0';
+
+    // Remove after transition completes
+    setTimeout(() => el.remove(), 500);
+  }
 
   private tick(dtSeconds: number): void {
     if (this.state.phase !== 'running') return;
@@ -152,6 +388,8 @@ export class Game {
     // Update player, world, traffic
     this.player.update(dtSeconds);
     this.world.update(effectiveSpeed * dtSeconds);
+    this.environment.update(effectiveSpeed * dtSeconds);
+    this.renderer.updateSkyline(effectiveSpeed * dtSeconds);
     this.traffic.update(effectiveSpeed, dtSeconds);
     this.renderer.tick(this.player.x, dtSeconds);
 
