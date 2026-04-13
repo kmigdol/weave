@@ -111,9 +111,9 @@ export const SHAKE_CRASH_DURATION = 0.4;
 
 // ── CRT Post-Process ──────────────────────────────────────────────────
 export const CRT_DEFAULTS = {
-  bloomStrength: 0.35,
-  bloomRadius: 0.4,
-  bloomThreshold: 0.85,
+  bloomStrength: 0.15,
+  bloomRadius: 0.3,
+  bloomThreshold: 0.95,
   scanlineIntensity: 0.18,
   chromaOffset: 0.0015,
   vignetteStrength: 0.55,
