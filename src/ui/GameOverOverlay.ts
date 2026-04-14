@@ -50,11 +50,11 @@ export class GameOverOverlay {
     Object.assign(btnContainer.style, {
       position: 'absolute',
       bottom: '20px',
-      right: '20px',
+      left: '20px',
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      alignItems: 'flex-end',
+      alignItems: 'flex-start',
     } satisfies Partial<CSSStyleDeclaration>);
 
     this.qualityBtn = this.createToggleButton('HQ');
