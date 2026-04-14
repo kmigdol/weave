@@ -113,11 +113,11 @@ export class Game {
         this.assets = assets;
         this.renderer.scene.remove(this.playerMesh);
         this.setupPlayerMesh();
-        this.traffic.setAssets(assets);
-
-        // Clear any fallback-box traffic spawned before assets loaded
+        // Clear fallback-box traffic BEFORE setting assets so reset()
+        // doesn't push boxes back into the pools that setAssets() just flushed.
         this.traffic.reset();
         this.traffic.clearDespawnedIds();
+        this.traffic.setAssets(assets);
 
         if (this.state.phase === 'onRamp') {
           this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
@@ -188,6 +188,7 @@ export class Game {
 
     this.playerMesh.position.set(laneToX(NUM_LANES - 1) + 6, this.playerMeshY, 15);
     this.hud.show();
+    this.hud.update(0, 0, 0, BOOST_DURATION, 0, 0, 0, NEAR_MISS_BURST_DURATION);
   }
 
   private restart(): void {
@@ -210,6 +211,8 @@ export class Game {
 
     this.overlay.hide();
     this.hud.show();
+    // Reset HUD to zero state so stale boost bar doesn't carry over
+    this.hud.update(0, 0, 0, BOOST_DURATION, 0, 0, 0, NEAR_MISS_BURST_DURATION);
   }
 
   private toggleMute(): void {
