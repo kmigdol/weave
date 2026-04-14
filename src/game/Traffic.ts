@@ -71,6 +71,13 @@ export class TrafficManager {
   /** Supply loaded assets so traffic spawns use GLB models. */
   setAssets(assets: AssetManifest): void {
     this.assets = assets;
+    // Flush pooled fallback-box meshes so they aren't reused over GLB models
+    for (const mesh of this.normalPool) this.scene.remove(mesh);
+    for (const mesh of this.semiPool) this.scene.remove(mesh);
+    for (const mesh of this.swervingPool) this.scene.remove(mesh);
+    this.normalPool.length = 0;
+    this.semiPool.length = 0;
+    this.swervingPool.length = 0;
   }
 
   /** Call every simulation tick. */
