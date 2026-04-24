@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Mock three.js before importing Traffic
 vi.mock('three', () => {
   class MockMesh {
+    _isFallback = true; // tag so tests can distinguish fallback from GLB
     position = {
       x: 0,
       y: 0,
@@ -31,6 +32,23 @@ vi.mock('three', () => {
     BoxGeometry: vi.fn(),
     MeshStandardMaterial: vi.fn(),
     Scene: MockScene,
+    Box3: class { min = { y: 0 }; setFromObject() { return this; } },
+  };
+});
+
+// Mock Assets module so cloneCar returns distinguishable GLB groups
+vi.mock('../render/Assets', () => {
+  return {
+    cloneCar: vi.fn(() => ({
+      _isGLB: true,
+      position: {
+        x: 0, y: 0, z: 0,
+        set(x: number, y: number, z: number) { this.x = x; this.y = y; this.z = z; },
+      },
+      visible: true,
+      traverse: vi.fn(),
+      children: [],
+    })),
   };
 });
 
@@ -462,6 +480,75 @@ describe('TrafficManager', () => {
       expect(tm.cars.length).toBe(1);
       expect(tm.cars[0].mesh).toBe(firstMesh);
       expect(firstMesh.visible).toBe(true);
+    });
+  });
+
+  describe('setAssets pool flushing', () => {
+    it('after reset then setAssets, new cars use GLB models not pooled boxes', () => {
+      const tm = new TrafficManager(scene, fixedRng(0.5));
+
+      // Spawn some cars WITHOUT assets (they'll be fallback boxes)
+      for (let i = 0; i < 5; i++) {
+        tm.update(SPEED_MIN_MS, TRAFFIC_BASE_SPAWN_INTERVAL + 0.01);
+      }
+      const boxCount = tm.cars.length;
+      expect(boxCount).toBeGreaterThan(0);
+
+      // Verify they're fallback boxes
+      for (const car of tm.cars) {
+        expect((car.mesh as any)._isFallback).toBe(true);
+      }
+
+      // Now simulate what Game.start() should do: reset first, then setAssets
+      tm.reset();
+      tm.setAssets({
+        sedan: {} as any,
+        sedanSports: {} as any,
+        suv: {} as any,
+        hatchbackSports: {} as any,
+        police: {} as any,
+        taxi: {} as any,
+        truck: {} as any,
+        delivery: {} as any,
+        van: {} as any,
+      });
+
+      // Spawn new cars — should use GLB models (cloneCar), NOT pooled boxes
+      for (let i = 0; i < 5; i++) {
+        tm.update(SPEED_MIN_MS, TRAFFIC_BASE_SPAWN_INTERVAL + 0.01);
+      }
+      expect(tm.cars.length).toBeGreaterThan(0);
+
+      for (const car of tm.cars) {
+        expect((car.mesh as any)._isGLB).toBe(true);
+      }
+    });
+
+    it('setAssets then reset leaves pooled boxes (wrong order)', () => {
+      const tm = new TrafficManager(scene, fixedRng(0.5));
+
+      // Spawn fallback-box cars
+      for (let i = 0; i < 5; i++) {
+        tm.update(SPEED_MIN_MS, TRAFFIC_BASE_SPAWN_INTERVAL + 0.01);
+      }
+      expect(tm.cars.length).toBeGreaterThan(0);
+
+      // WRONG order: setAssets first (flushes empty pools), then reset (puts boxes into pools)
+      tm.setAssets({
+        sedan: {} as any, sedanSports: {} as any, suv: {} as any,
+        hatchbackSports: {} as any, police: {} as any, taxi: {} as any,
+        truck: {} as any, delivery: {} as any, van: {} as any,
+      });
+      tm.reset(); // boxes go back into pools AFTER flush
+
+      // Spawn new cars — pool has boxes, so they'll be reused instead of GLB
+      for (let i = 0; i < 5; i++) {
+        tm.update(SPEED_MIN_MS, TRAFFIC_BASE_SPAWN_INTERVAL + 0.01);
+      }
+
+      // At least one car should be a fallback box (from the pool)
+      const hasBox = tm.cars.some((car) => (car.mesh as any)._isFallback === true);
+      expect(hasBox).toBe(true);
     });
   });
 });

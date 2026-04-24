@@ -1,8 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { startRun, tickRun, crashRun, startOnRamp, tickOnRamp } from './GameState';
+import { titleState, startRun, tickRun, crashRun, startOnRamp, tickOnRamp } from './GameState';
 import { ON_RAMP_DURATION } from './constants';
 
 describe('GameState', () => {
+  describe('titleState', () => {
+    it('returns phase title', () => {
+      const state = titleState();
+      expect(state).toEqual({ phase: 'title' });
+    });
+
+    it('has no extra properties beyond phase', () => {
+      const state = titleState();
+      expect(Object.keys(state)).toEqual(['phase']);
+    });
+  });
+
   describe('startOnRamp', () => {
     it('returns phase onRamp with elapsedSeconds 0', () => {
       const state = startOnRamp();

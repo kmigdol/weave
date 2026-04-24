@@ -1,5 +1,9 @@
 import { ON_RAMP_DURATION } from './constants';
 
+export type TitleState = {
+  phase: 'title';
+};
+
 export type OnRampState = {
   phase: 'onRamp';
   elapsedSeconds: number;
@@ -18,7 +22,11 @@ export type GameOverState = {
   bestCombo: number;
 };
 
-export type GameState = OnRampState | RunningState | GameOverState;
+export type GameState = TitleState | OnRampState | RunningState | GameOverState;
+
+export function titleState(): TitleState {
+  return { phase: 'title' };
+}
 
 export function startOnRamp(): OnRampState {
   return { phase: 'onRamp', elapsedSeconds: 0 };

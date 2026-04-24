@@ -264,8 +264,8 @@ describe('slipstream / BOOST', () => {
     expect(s.slipstreamTimer).toBeCloseTo(0.3);
 
     // Switch to a different car
-    ({ state: s } = tick(s, 0.3, { slipstreams: [{ id: 2 }] }));
-    expect(s.slipstreamTimer).toBeCloseTo(0.3); // reset to dt
+    ({ state: s } = tick(s, 0.15, { slipstreams: [{ id: 2 }] }));
+    expect(s.slipstreamTimer).toBeCloseTo(0.15); // reset to dt
     expect(s.slipstreamCarId).toBe(2);
   });
 
